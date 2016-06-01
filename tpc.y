@@ -1,6 +1,19 @@
 %{
 /* Grammaire du langage TPC */
 %}
+
+%token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
+%token IDENT
+%token IF ELSE WHILE RETURN PRINT READ READCH
+%token MAIN VOID
+%token TYPE NUM CARACTERE
+%token COMP ADDSUB DIVSTAR BOPE NEGATION
+
+%union {
+	char str[10];
+	
+}
+
 %%
 Prog         : DeclConsts DeclVars DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV
