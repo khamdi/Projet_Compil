@@ -1,6 +1,10 @@
 
+%option noyywrap
+%option noinput
+%option nounput
+
 id		[A-Za-z_][A-Za-z_0-9]*
-num [0-9]*
+num [0-9]+
 
 %%
 
@@ -17,7 +21,7 @@ main {return MAIN;}
 void {return VOID;}
 
 "entier"|"caractere" {sscanf(yytext,"%s",yylval.str); return TYPE;}
-{num} {sscanf(yytext,"%d",yylval); return NUM;}
+{num} {sscanf(yytext,"%d",&yylval); return NUM;}
 '[A-Za-z0-9]' {sscanf(yytext,"%s",yylval.str); return CARACTERE;}
 
 {id} {sscanf(yytext,"%s",yylval.str); return IDENT;}
