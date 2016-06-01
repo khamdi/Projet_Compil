@@ -74,3 +74,37 @@ Exp          : Exp ADDSUB Exp
 LValue       : IDENT
              | IDENT LSQB Exp RSQB ;
 %%
+
+int yyerror(char* s) {
+  fprintf(stderr,"%s\n",s);
+  return 0;
+}
+
+void inst(const char *s){
+  printf("%s\n",s);
+}
+
+void instarg(const char *s,int n){
+  printf("%s\t%d\n",s,n);
+}
+
+void comment(const char *s){
+  printf("#%s\n",s);
+}
+
+
+int main(int argc, char** argv) {
+  if(argc==2){
+    yyin = fopen(argv[1],"r");
+  }
+  else if(argc==1){
+    yyin = stdin;
+  }
+  else{
+    fprintf(stderr,"usage: %s [src]\n",argv[0]);
+    return 1;
+  }
+  yyparse();
+  inst("HALT");
+  return 0;
+}
