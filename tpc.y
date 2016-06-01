@@ -1,5 +1,15 @@
 %{
-/* Grammaire du langage TPC */
+#include <stdlib.h>
+#include <stdio.h>
+
+int yyerror(char*);
+int yylex();
+FILE* yyin; 
+int yylval; 
+int jump_label=0;
+void inst(const char *);
+void instarg(const char *,int);
+void comment(const char *);
 %}
 
 %token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
