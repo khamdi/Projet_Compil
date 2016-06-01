@@ -11,6 +11,7 @@ return {return RETURN;}
 print {return PRINT;}
 read {return READ;}
 readch {return READCH;}
+const {return CONST;}
 
 main {return MAIN;}
 void {return VOID;}

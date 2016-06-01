@@ -14,7 +14,7 @@ void comment(const char *);
 
 %token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
 %token IDENT
-%token IF ELSE WHILE RETURN PRINT READ READCH
+%token IF ELSE WHILE RETURN PRINT READ READCH CONST
 %token MAIN VOID
 %token TYPE NUM CARACTERE
 %token COMP ADDSUB DIVSTAR BOPE NEGATION
@@ -26,14 +26,18 @@ void comment(const char *);
 
 %%
 Prog         : DeclConsts DeclVars DeclFoncts;
-DeclConsts   : DeclConsts CONST ListConst PV
+DeclConsts   : DeclConsts CONST ListConst PV {}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral
-             | IDENT EGAL Litteral ;
+             | IDENT EGAL Litteral {};
 Litteral     : NombreSigne
              | CARACTERE ;
-NombreSigne  : NUM
-             | ADDSUB NUM ;
+NombreSigne  : NUM {$0 = $1;}
+             | ADDSUB NUM {
+                  if ($1 == '+')
+                        $0 = $1;
+                  else
+                        $0 = -$1;
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
 Declarateurs : Declarateurs VRG Declarateur
