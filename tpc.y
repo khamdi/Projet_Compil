@@ -26,18 +26,14 @@ void comment(const char *);
 
 %%
 Prog         : DeclConsts DeclVars DeclFoncts;
-DeclConsts   : DeclConsts CONST ListConst PV {}
+DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral
-             | IDENT EGAL Litteral {};
-Litteral     : NombreSigne
-             | CARACTERE ;
-NombreSigne  : NUM {$0 = $1;}
-             | ADDSUB NUM {
-                  if ($1 == '+')
-                        $0 = $1;
-                  else
-                        $0 = -$1;
+             | IDENT EGAL Litteral {$1 = $3;};
+Litteral     : NombreSigne {$$ = $1;}
+             | CARACTERE {$$ = $1;};
+NombreSigne  : NUM {$$ = $1;}
+             | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
 Declarateurs : Declarateurs VRG Declarateur
@@ -53,40 +49,64 @@ Parametres   : VOID
              | ListTypVar ;
 ListTypVar   : ListTypVar VRG TYPE IDENT
              | TYPE IDENT ;
-Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR ;
+Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
-Instr        : LValue EGAL Exp PV
-             | IF LPAR Exp RPAR Instr
+Instr        : LValue EGAL Exp PV {$1 = $3;}
+             | IF LPAR Exp RPAR Instr {/*TP If/Else*/}
              | IF LPAR Exp RPAR Instr ELSE Instr
              | WHILE LPAR Exp RPAR Instr
-             | RETURN Exp PV
-             | RETURN PV
-             | IDENT LPAR Arguments RPAR PV
-             | READ LPAR IDENT RPAR PV
-             | READCH LPAR IDENT RPAR PV
-             | PRINT LPAR Exp RPAR PV
+             | RETURN Exp PV {/* Empiler la valeur sur la pile */ inst("RETURN");}
+             | RETURN PV {inst ("RETURN");}
+             | IDENT LPAR Arguments RPAR PV {/* Fonctions */}
+             | READ LPAR IDENT RPAR PV {/* Appel de Read sur Identifiant */}
+             | READCH LPAR IDENT RPAR PV {/* Idem avec les caractères */}
+             | PRINT LPAR Exp RPAR PV {/* Appel de print sur l'expression */}
              | PV
              | Bloc ;
 Bloc         : LCUR SuiteInstr RCUR ;
-Arguments    : ListExp
+Arguments    : ListExp {/* Count args */}
              | ;
 ListExp      : ListExp VRG Exp
              | Exp ;
-Exp          : Exp ADDSUB Exp
+Exp          : Exp ADDSUB Exp {
+				inst("POP");
+				inst("SWAP");
+				inst ("POP");
+				if ($2 == '+')
+					inst ("ADD");
+				else
+					inst ("SUB");
+				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
              | Exp DIVSTAR Exp
-             | Exp COMP Exp
-             | ADDSUB Exp
-             | Exp BOPE Exp
-             | NEGATION Exp
-             | LPAR Exp RPAR
-             | LValue
-             | NUM
-             | CARACTERE
-             | Exp IF LPAR Exp RPAR ELSE Exp
-             | IDENT LPAR Arguments RPAR ;
-LValue       : IDENT
-             | IDENT LSQB Exp RSQB ;
+             | Exp COMP Exp 
+             | ADDSUB Exp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
+             | Exp BOPE Exp {
+					inst ("POP"); inst ("SWAP"); inst ("POP");
+					switch (*$2.str) {
+						case '>':	switch (*$2.str + 1) {
+										case '=': inst ("GEQ"); break;
+										default : inst ("GREATER"); break;
+									}
+						case '<':	switch (*$2.str + 1) {
+										case '=': inst ("LEQ"); break;
+										default : inst ("LESS"); break;
+									}																		
+						case '=': 	inst ("EQUAL"); break;
+						case '!':	inst ("NOTEQ"); break;
+						default :	error ("Not a binary operation."); break;
+					}
+					inst ("PUSH");
+				}
+             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); $$ = ($2) ? 0 : 1;}
+             | LPAR Exp RPAR {$$ = $2;}
+             | LValue {$$ = $1;}
+             | NUM {instarg ("SET", $1); inst ("PUSH"); $$ = $1;}
+             | CARACTERE {$$ = $1;}
+             | Exp IF LPAR Exp RPAR ELSE Exp {$$ = ($4) ? $1: $6;}
+             | IDENT LPAR Arguments RPAR ; {/* Un appel de fonction */}
+LValue       : IDENT {$$ = $1;}
+             | IDENT LSQB Exp RSQB {/* Tableaux */};
 %%
 
 int yyerror(char* s) {
