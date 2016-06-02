@@ -1,4 +1,4 @@
-%{
+ %{
 #include "tpc.h"
 %}
 
