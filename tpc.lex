@@ -11,7 +11,7 @@ num 	[0-9]+
 
 %%
 
-[ \t\n]						;
+[ \t\n]+					;
 if							{return IF;}
 else						{return ELSE;}
 while						{return WHILE;}
@@ -25,25 +25,25 @@ main						{return MAIN;}
 void						{return VOID;}
 
 "entier"|"caractere"		{return TYPE;}
-{num}						{sscanf(yytext,"%d",&(yylval.val)); return NUM;}
-'[A-Za-z0-9]'				{return CARACTERE;}
+{num}						{sscanf(yytext," %d",&(yylval.val)); return NUM;}
+\'[A-Za-z0-9]\'				{return CARACTERE;}
 
 {id}						{snprintf (yylval.id,64,"%s",yytext); return IDENT;}
 
 "=="|"<="|">="|"!="|"<"|">" {snprintf (yylval.bop, 3, "%s", yytext); return COMP;}
 =							{return EGAL;}
-[+-]						{sscanf (yytext, "%c, &(yylval.op)); return ADDSUB;}
-[*/%]						{sscanf (yytext, "%c, &(yylval.op)); return DIVSTAR;}
+[+-]						{sscanf (yytext, " %c", &(yylval.op)); return ADDSUB;}
+[*/%]						{sscanf (yytext, " %c", &(yylval.op)); return DIVSTAR;}
 "&&"|"||"					{snprintf (yylval.bop, 3, "%s", yytext); return BOPE;}
 !							{return NEGATION;}
 
-;							{return PV;}
-,							{return VRG;}
-(							{return LPAR;}
-)							{return RPAR;}
-{							{return LCUR;}
-}							{return RCUR;}
-[							{return LSQB;}
-]							{return RSQB;}
+\;							{return PV;}
+\,							{return VRG;}
+\(							{return LPAR;}
+\)							{return RPAR;}
+\{							{return LCUR;}
+\}							{return RCUR;}
+\[							{return LSQB;}
+\]							{return RSQB;}
 .							return yytext[0];
 %%
