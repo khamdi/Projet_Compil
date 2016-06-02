@@ -1,1 +1,3 @@
-print (5 || 8);
+void main ( void ) {
+	print ( 1 || -1 );
+}

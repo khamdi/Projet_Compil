@@ -112,9 +112,10 @@ Exp          : Exp ADDSUB Exp {
              | Exp BOPE Exp {
 					inst ("POP"); inst ("SWAP"); inst ("POP");
 					switch (*$2) {
-						case '|':	instarg ("JUMPF", jump_label++); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 1); inst ("SWAP"); inst ("PUSH"); instarg ("LABEL", jump_label); break;
-						case '&':	inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 1); inst ("SWAP"); inst ("PUSH"); instarg ("LABEL", jump_label); break;
+						case '|':	instarg ("JUMPF", jump_label++);  break;
+						case '&':	inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); break;
 					}
+					inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("SWAP"); inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);
 				}
              | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); /*$$ = ($2) ? 0 : 1;*/}
              | LPAR Exp RPAR {/*$$ = $2;*/}
