@@ -22,7 +22,7 @@ void {return VOID;}
 
 "entier"|"caractere" {sscanf(yytext,"%s",yylval.str); return TYPE;}
 {num} {sscanf(yytext,"%d",&yylval); return NUM;}
-'[A-Za-z0-9]' {sscanf(yytext,"%d",yylval); return CARACTERE;}
+'[A-Za-z0-9]' {sscanf(yytext,"%d",yylval); return CARACTERE; /* strtol */ }
 
 {id} {sscanf(yytext,"%s",yylval.str); return IDENT;}
 
@@ -42,5 +42,6 @@ void {return VOID;}
 [ {return LSQB;}
 ] {return RSQB;}
 
+.|\n return yytext[0]
 %%
 
