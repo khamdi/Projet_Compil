@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-Wall
 LDFLAGS=-Wall -lfl -lm
-EXEC=tcompil
+EXEC=tpc
 
 all: $(EXEC) clean
 

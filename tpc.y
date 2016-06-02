@@ -5,35 +5,39 @@
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
-int yylval; 
+/*int yylval;*/
 int jump_label=0;
 void inst(const char *);
 void instarg(const char *,int);
 void comment(const char *);
 %}
 
-%token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
-%token IDENT
-%token IF ELSE WHILE RETURN PRINT READ READCH CONST
-%token MAIN VOID
-%token TYPE NUM CARACTERE
-%token COMP ADDSUB DIVSTAR BOPE NEGATION
-
 %union {
-	char str[10];
-	
+	char id[64];
+	char bop[3];
+	char op;
+	int val;
 }
+
+%token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
+%token <id> IDENT
+%token IF ELSE WHILE RETURN PRINT READ READCH CONST
+%token MAIN VOID NEGATION
+%token TYPE
+%token <val> NUM CARACTERE
+%token <op> ADDSUB DIVSTAR
+%token <bop> COMP BOPE
 
 %%
 Prog         : DeclConsts DeclVars DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral
-             | IDENT EGAL Litteral {$1 = $3;};
-Litteral     : NombreSigne {$$ = $1;}
-             | CARACTERE {$$ = $1;};
-NombreSigne  : NUM {$$ = $1;}
-             | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
+             | IDENT EGAL Litteral {/*$1 = $3;*/};
+Litteral     : NombreSigne {/*$$ = $1;*/}
+             | CARACTERE {/*$$ = $1;*/};
+NombreSigne  : NUM {/*$$ = $1;*/}
+             | ADDSUB NUM {/*$$ = ($1 == '+') ? $1: -$1;*/};
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
 Declarateurs : Declarateurs VRG Declarateur
@@ -52,16 +56,16 @@ ListTypVar   : ListTypVar VRG TYPE IDENT
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
-Instr        : LValue EGAL Exp PV {$1 = $3;}
+Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
              | IF LPAR Exp RPAR Instr {/*TP If/Else*/}
              | IF LPAR Exp RPAR Instr ELSE Instr
              | WHILE LPAR Exp RPAR Instr
-             | RETURN Exp PV {/* Empiler la valeur sur la pile */ inst("RETURN");}
+             | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
              | RETURN PV {inst ("RETURN");}
              | IDENT LPAR Arguments RPAR PV {/* Fonctions */}
-             | READ LPAR IDENT RPAR PV {/* Appel de Read sur Identifiant */}
-             | READCH LPAR IDENT RPAR PV {/* Idem avec les caractères */}
-             | PRINT LPAR Exp RPAR PV {/* Appel de print sur l'expression */}
+             | READ LPAR IDENT RPAR PV {inst ("READ"); inst ("PUSH");/* Appel de Read sur Identifiant */}
+             | READCH LPAR IDENT RPAR PV {inst ("READCH"); inst ("PUSH");/* Idem avec les caractères */}
+             | PRINT LPAR Exp RPAR PV {inst ("POP"); inst ("WRITE"); inst ("PUSH");/* Appel de print sur l'expression */}
              | PV
              | Bloc ;
 Bloc         : LCUR SuiteInstr RCUR ;
@@ -78,34 +82,48 @@ Exp          : Exp ADDSUB Exp {
 				else
 					inst ("SUB");
 				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
-             | Exp DIVSTAR Exp
-             | Exp COMP Exp 
-             | ADDSUB Exp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
-             | Exp BOPE Exp {
-					inst ("POP"); inst ("SWAP"); inst ("POP");
-					switch (*$2.str) {
-						case '>':	switch (*$2.str + 1) {
+             | Exp DIVSTAR Exp {
+				inst("POP");
+				inst("SWAP");
+				inst ("POP");
+				switch ($2) {
+					case '*': inst ("MUL"); break;
+					case '/': inst ("DIV"); break;
+					case '%': inst ("MOD"); break;
+				}
+				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
+             | Exp COMP Exp {
+					switch (*$2) {
+						case '>':	switch (*$2 + 1) {
 										case '=': inst ("GEQ"); break;
 										default : inst ("GREATER"); break;
 									}
-						case '<':	switch (*$2.str + 1) {
+						case '<':	switch (*$2 + 1) {
 										case '=': inst ("LEQ"); break;
 										default : inst ("LESS"); break;
 									}																		
 						case '=': 	inst ("EQUAL"); break;
 						case '!':	inst ("NOTEQ"); break;
-						default :	error ("Not a binary operation."); break;
+						default :	yyerror ("Not a comparator."); break;
 					}
-					inst ("PUSH");
+
 				}
-             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); $$ = ($2) ? 0 : 1;}
-             | LPAR Exp RPAR {$$ = $2;}
-             | LValue {$$ = $1;}
-             | NUM {instarg ("SET", $1); inst ("PUSH"); $$ = $1;}
-             | CARACTERE {$$ = $1;}
-             | Exp IF LPAR Exp RPAR ELSE Exp {$$ = ($4) ? $1: $6;}
-             | IDENT LPAR Arguments RPAR ; {/* Un appel de fonction */}
-LValue       : IDENT {$$ = $1;}
+             | ADDSUB Exp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
+             | Exp BOPE Exp {
+					inst ("POP"); inst ("SWAP"); inst ("POP");
+					switch (*$2) {
+						case '|':	instarg ("JUMPF", jump_label++); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 1); inst ("SWAP"); inst ("PUSH"); instarg ("LABEL", jump_label); break;
+						case '&':	inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 1); inst ("SWAP"); inst ("PUSH"); instarg ("LABEL", jump_label); break;
+					}
+				}
+             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); /*$$ = ($2) ? 0 : 1;*/}
+             | LPAR Exp RPAR {/*$$ = $2;*/}
+             | LValue {/*$$ = $1;*/}
+             | NUM {instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
+             | CARACTERE {/*$$ = $1;*/}
+             | Exp IF LPAR Exp RPAR ELSE Exp {/*$$ = ($4) ? $1: $6;*/}
+             | IDENT LPAR Arguments RPAR {/* Un appel de fonction */}; 
+LValue       : IDENT {/*$$ = $1;*/}
              | IDENT LSQB Exp RSQB {/* Tableaux */};
 %%
 
