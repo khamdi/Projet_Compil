@@ -21,7 +21,6 @@ read						{return READ;}
 readch						{return READCH;}
 const						{return CONST;}
 
-main						{return MAIN;}
 void						{return VOID;}
 
 "entier"|"caractere"		{return TYPE;}
