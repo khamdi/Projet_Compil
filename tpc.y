@@ -59,7 +59,7 @@ SuiteInstr   : SuiteInstr Instr
 Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
              | IF LPAR Exp RPAR Instr {/*TP If/Else*/}
              | IF LPAR Exp RPAR Instr ELSE Instr
-             | WHILE LPAR Exp RPAR Instr
+             | WHILE LPAR Exp RPAR Instr {/* TP While */}
              | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
              | RETURN PV {inst ("RETURN");}
              | IDENT LPAR Arguments RPAR PV {/* Fonctions */}

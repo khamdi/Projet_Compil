@@ -11,7 +11,7 @@ num 	[0-9]+
 
 %%
 
-[ \t]						;
+[ \t\n]						;
 if							{return IF;}
 else						{return ELSE;}
 while						{return WHILE;}
