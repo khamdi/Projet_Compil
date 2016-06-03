@@ -58,6 +58,12 @@ void add_var_in_func()
 %token <op> ADDSUB DIVSTAR
 %token <bop> COMP BOPE
 
+%type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
+
+%left COMP BOPE ADDSUB
+%left unaryOp
+%right EGAL
+
 %%
 Prog         : DeclConsts DeclVars DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
@@ -87,9 +93,9 @@ Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, s
 SuiteInstr   : SuiteInstr Instr
              | ;
 Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
-             | IF LPAR Exp RPAR Instr {/*TP If/Else*/}
-             | IF LPAR Exp RPAR Instr ELSE Instr
-             | WHILE LPAR Exp RPAR Instr {/* TP While */}
+             | IF LPAR Exp IFACTION RPAR Instr {instarg ("LABEL", $4);}
+             | IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION {instarg ("LABEL", $4);} Instr {instarg ("LABEL", $8);}
+             | WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr {instarg ("JUMP", $2); instarg ("LABEL", $6);}
              | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
              | RETURN PV {inst ("RETURN");}
              | IDENT LPAR Arguments RPAR PV {/* Fonctions */}
@@ -98,6 +104,10 @@ Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
              | PRINT LPAR Exp RPAR PV {inst ("POP"); inst ("WRITE"); inst ("PUSH");/* Appel de print sur l'expression */}
              | PV
              | Bloc ;
+IFACTION	 : {instarg ("JUMPF", $$=jump_label++);};
+ELSEACTION	 : {instarg ("JUMP", $$=jump_label++);};
+WHILELABEL	 : {instarg ("LABEL", $$=jump_label++);};
+WHILECOMP	 : {instarg ("JUMPF", $$=jump_label++);};
 Bloc         : LCUR SuiteInstr RCUR ;
 Arguments    : ListExp {/* Count args */}
              | ;
@@ -107,7 +117,7 @@ Exp          : Exp ADDSUB Exp {
 				inst("POP");
 				inst("SWAP");
 				inst ("POP");
-				if ($2 == '+')
+				if ($2 == '+') 
 					inst ("ADD");
 				else
 					inst ("SUB");
@@ -123,23 +133,25 @@ Exp          : Exp ADDSUB Exp {
 				}
 				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
              | Exp COMP Exp {
+					inst ("POP");
+					inst ("SWAP");
+					inst ("POP");
 					switch (*$2) {
-						case '>':	switch (*$2 + 1) {
+						case '>':	switch (*($2 + 1)) {
 										case '=': inst ("GEQ"); break;
 										default : inst ("GREATER"); break;
-									}
-						case '<':	switch (*$2 + 1) {
+									} break;
+						case '<':	switch (*($2 + 1)) {
 										case '=': inst ("LEQ"); break;
 										default : inst ("LESS"); break;
-									}																		
+									} break;													
 						case '=': 	inst ("EQUAL"); break;
 						case '!':	inst ("NOTEQ"); break;
 						default :	yyerror ("Not a comparator."); break;
 					}
-
+					inst ("PUSH");
 				}
-             | ADDSUB Exp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
-             | Exp BOPE Exp {
+			 | Exp BOPE Exp {
 					inst ("POP"); inst ("SWAP"); inst ("POP");
 					switch (*$2) {
 						case '|':	instarg ("JUMPF", jump_label++);  break;
@@ -147,6 +159,7 @@ Exp          : Exp ADDSUB Exp {
 					}
 					inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("SWAP"); inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);
 				}
+             | ADDSUB Exp %prec unaryOp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
              | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); /*$$ = ($2) ? 0 : 1;*/}
              | LPAR Exp RPAR {/*$$ = $2;*/}
              | LValue {/*$$ = $1;*/}

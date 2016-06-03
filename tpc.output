@@ -4,13 +4,13 @@ Terminaux inutilisés dans la grammaire
 
 
 État 98 conflits: 5 décalage/réduction
-État 99 conflits: 5 décalage/réduction
-État 118 conflits: 5 décalage/réduction
+État 99 conflits: 2 décalage/réduction
+État 118 conflits: 2 décalage/réduction
 État 119 conflits: 5 décalage/réduction
-État 120 conflits: 5 décalage/réduction
-État 121 conflits: 5 décalage/réduction
-État 128 conflits: 1 décalage/réduction
-État 139 conflits: 5 décalage/réduction
+État 120 conflits: 2 décalage/réduction
+État 121 conflits: 2 décalage/réduction
+État 135 conflits: 1 décalage/réduction
+État 142 conflits: 5 décalage/réduction
 
 
 Grammaire
@@ -60,41 +60,52 @@ Grammaire
    27           | %empty
 
    28 Instr: LValue EGAL Exp PV
-   29      | IF LPAR Exp RPAR Instr
-   30      | IF LPAR Exp RPAR Instr ELSE Instr
-   31      | WHILE LPAR Exp RPAR Instr
-   32      | RETURN Exp PV
-   33      | RETURN PV
-   34      | IDENT LPAR Arguments RPAR PV
-   35      | READ LPAR IDENT RPAR PV
-   36      | READCH LPAR IDENT RPAR PV
-   37      | PRINT LPAR Exp RPAR PV
-   38      | PV
-   39      | Bloc
+   29      | IF LPAR Exp IFACTION RPAR Instr
 
-   40 Bloc: LCUR SuiteInstr RCUR
+   30 $@1: %empty
 
-   41 Arguments: ListExp
-   42          | %empty
+   31 Instr: IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION $@1 Instr
+   32      | WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr
+   33      | RETURN Exp PV
+   34      | RETURN PV
+   35      | IDENT LPAR Arguments RPAR PV
+   36      | READ LPAR IDENT RPAR PV
+   37      | READCH LPAR IDENT RPAR PV
+   38      | PRINT LPAR Exp RPAR PV
+   39      | PV
+   40      | Bloc
 
-   43 ListExp: ListExp VRG Exp
-   44        | Exp
+   41 IFACTION: %empty
 
-   45 Exp: Exp ADDSUB Exp
-   46    | Exp DIVSTAR Exp
-   47    | Exp COMP Exp
-   48    | ADDSUB Exp
-   49    | Exp BOPE Exp
-   50    | NEGATION Exp
-   51    | LPAR Exp RPAR
-   52    | LValue
-   53    | NUM
-   54    | CARACTERE
-   55    | Exp IF LPAR Exp RPAR ELSE Exp
-   56    | IDENT LPAR Arguments RPAR
+   42 ELSEACTION: %empty
 
-   57 LValue: IDENT
-   58       | IDENT LSQB Exp RSQB
+   43 WHILELABEL: %empty
+
+   44 WHILECOMP: %empty
+
+   45 Bloc: LCUR SuiteInstr RCUR
+
+   46 Arguments: ListExp
+   47          | %empty
+
+   48 ListExp: ListExp VRG Exp
+   49        | Exp
+
+   50 Exp: Exp ADDSUB Exp
+   51    | Exp DIVSTAR Exp
+   52    | Exp COMP Exp
+   53    | Exp BOPE Exp
+   54    | ADDSUB Exp
+   55    | NEGATION Exp
+   56    | LPAR Exp RPAR
+   57    | LValue
+   58    | NUM
+   59    | CARACTERE
+   60    | Exp IF LPAR Exp RPAR ELSE Exp
+   61    | IDENT LPAR Arguments RPAR
+
+   62 LValue: IDENT
+   63       | IDENT LSQB Exp RSQB
 
 
 Terminaux, suivis des règles où ils apparaissent
@@ -102,83 +113,94 @@ Terminaux, suivis des règles où ils apparaissent
 $end (0) 0
 error (256)
 EGAL (258) 4 5 28
-PV (259) 2 10 28 32 33 34 35 36 37 38
-VRG (260) 4 12 23 43
-LPAR (261) 19 20 29 30 31 34 35 36 37 51 55 56
-RPAR (262) 19 20 29 30 31 34 35 36 37 51 55 56
-LCUR (263) 25 40
-RCUR (264) 25 40
-LSQB (265) 15 58
-RSQB (266) 15 58
-IDENT (267) 4 5 14 15 19 20 23 24 34 35 36 56 57 58
-IF (268) 29 30 55
-ELSE (269) 30 55
-WHILE (270) 31
-RETURN (271) 32 33
-PRINT (272) 37
-READ (273) 35
-READCH (274) 36
+PV (259) 2 10 28 33 34 35 36 37 38 39
+VRG (260) 4 12 23 48
+LPAR (261) 19 20 29 31 32 35 36 37 38 56 60 61
+RPAR (262) 19 20 29 31 32 35 36 37 38 56 60 61
+LCUR (263) 25 45
+RCUR (264) 25 45
+LSQB (265) 15 63
+RSQB (266) 15 63
+IDENT (267) 4 5 14 15 19 20 23 24 35 36 37 61 62 63
+IF (268) 29 31 60
+ELSE (269) 31 60
+WHILE (270) 32
+RETURN (271) 33 34
+PRINT (272) 38
+READ (273) 36
+READCH (274) 37
 CONST (275) 2
 MAIN (276)
 VOID (277) 20 21
-NEGATION (278) 50
+NEGATION (278) 55
 TYPE (279) 10 19 23 24
-NUM (280) 8 9 15 53
-CARACTERE (281) 7 54
-ADDSUB (282) 9 45 48
-DIVSTAR (283) 46
-COMP (284) 47
-BOPE (285) 49
+NUM (280) 8 9 15 58
+CARACTERE (281) 7 59
+ADDSUB (282) 9 50 54
+DIVSTAR (283) 51
+COMP (284) 52
+BOPE (285) 53
+unaryOp (286)
 
 
 Non-terminaux, suivis des règles où ils apparaissent
 
-$accept (31)
+$accept (32)
     à gauche: 0
-Prog (32)
+Prog (33)
     à gauche: 1, à droite: 0
-DeclConsts (33)
+DeclConsts (34)
     à gauche: 2 3, à droite: 1 2 25
-ListConst (34)
+ListConst (35)
     à gauche: 4 5, à droite: 2 4
-Litteral (35)
+Litteral (36)
     à gauche: 6 7, à droite: 4 5
-NombreSigne (36)
+NombreSigne (37)
     à gauche: 8 9, à droite: 6
-DeclVars (37)
+DeclVars (38)
     à gauche: 10 11, à droite: 1 10 25
-Declarateurs (38)
+Declarateurs (39)
     à gauche: 12 13, à droite: 10 12
-Declarateur (39)
+Declarateur (40)
     à gauche: 14 15, à droite: 12 13
-DeclFoncts (40)
+DeclFoncts (41)
     à gauche: 16 17, à droite: 1 16
-DeclFonct (41)
+DeclFonct (42)
     à gauche: 18, à droite: 16 17
-EnTeteFonct (42)
+EnTeteFonct (43)
     à gauche: 19 20, à droite: 18
-Parametres (43)
+Parametres (44)
     à gauche: 21 22, à droite: 19 20
-ListTypVar (44)
+ListTypVar (45)
     à gauche: 23 24, à droite: 22 23
-Corps (45)
+Corps (46)
     à gauche: 25, à droite: 18
-SuiteInstr (46)
-    à gauche: 26 27, à droite: 25 26 40
-Instr (47)
-    à gauche: 28 29 30 31 32 33 34 35 36 37 38 39, à droite: 26 29
-    30 31
-Bloc (48)
-    à gauche: 40, à droite: 39
-Arguments (49)
-    à gauche: 41 42, à droite: 34 56
-ListExp (50)
-    à gauche: 43 44, à droite: 41 43
-Exp (51)
-    à gauche: 45 46 47 48 49 50 51 52 53 54 55 56, à droite: 28 29
-    30 31 32 37 43 44 45 46 47 48 49 50 51 55 58
-LValue (52)
-    à gauche: 57 58, à droite: 28 52
+SuiteInstr (47)
+    à gauche: 26 27, à droite: 25 26 45
+Instr (48)
+    à gauche: 28 29 31 32 33 34 35 36 37 38 39 40, à droite: 26 29
+    31 32
+$@1 (49)
+    à gauche: 30, à droite: 31
+IFACTION (50)
+    à gauche: 41, à droite: 29 31
+ELSEACTION (51)
+    à gauche: 42, à droite: 31
+WHILELABEL (52)
+    à gauche: 43, à droite: 32
+WHILECOMP (53)
+    à gauche: 44, à droite: 32
+Bloc (54)
+    à gauche: 45, à droite: 40
+Arguments (55)
+    à gauche: 46 47, à droite: 35 61
+ListExp (56)
+    à gauche: 48 49, à droite: 46 48
+Exp (57)
+    à gauche: 50 51 52 53 54 55 56 57 58 59 60 61, à droite: 28 29
+    31 32 33 38 48 49 50 51 52 53 54 55 56 60 63
+LValue (58)
+    à gauche: 62 63, à droite: 28 57
 
 
 État 0
@@ -675,14 +697,14 @@ LValue (52)
 
 État 57
 
-   38 Instr: PV .
+   39 Instr: PV .
 
-    $défaut  réduction par utilisation de la règle 38 (Instr)
+    $défaut  réduction par utilisation de la règle 39 (Instr)
 
 
 État 58
 
-   40 Bloc: LCUR . SuiteInstr RCUR
+   45 Bloc: LCUR . SuiteInstr RCUR
 
     $défaut  réduction par utilisation de la règle 27 (SuiteInstr)
 
@@ -698,35 +720,37 @@ LValue (52)
 
 État 60
 
-   34 Instr: IDENT . LPAR Arguments RPAR PV
-   57 LValue: IDENT .
-   58       | IDENT . LSQB Exp RSQB
+   35 Instr: IDENT . LPAR Arguments RPAR PV
+   62 LValue: IDENT .
+   63       | IDENT . LSQB Exp RSQB
 
     LPAR  décalage et aller à l'état 72
     LSQB  décalage et aller à l'état 73
 
-    $défaut  réduction par utilisation de la règle 57 (LValue)
+    $défaut  réduction par utilisation de la règle 62 (LValue)
 
 
 État 61
 
-   29 Instr: IF . LPAR Exp RPAR Instr
-   30      | IF . LPAR Exp RPAR Instr ELSE Instr
+   29 Instr: IF . LPAR Exp IFACTION RPAR Instr
+   31      | IF . LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION $@1 Instr
 
     LPAR  décalage et aller à l'état 74
 
 
 État 62
 
-   31 Instr: WHILE . LPAR Exp RPAR Instr
+   32 Instr: WHILE . WHILELABEL LPAR Exp RPAR WHILECOMP Instr
 
-    LPAR  décalage et aller à l'état 75
+    $défaut  réduction par utilisation de la règle 43 (WHILELABEL)
+
+    WHILELABEL  aller à l'état 75
 
 
 État 63
 
-   32 Instr: RETURN . Exp PV
-   33      | RETURN . PV
+   33 Instr: RETURN . Exp PV
+   34      | RETURN . PV
 
     PV         décalage et aller à l'état 76
     LPAR       décalage et aller à l'état 77
@@ -742,21 +766,21 @@ LValue (52)
 
 État 64
 
-   37 Instr: PRINT . LPAR Exp RPAR PV
+   38 Instr: PRINT . LPAR Exp RPAR PV
 
     LPAR  décalage et aller à l'état 85
 
 
 État 65
 
-   35 Instr: READ . LPAR IDENT RPAR PV
+   36 Instr: READ . LPAR IDENT RPAR PV
 
     LPAR  décalage et aller à l'état 86
 
 
 État 66
 
-   36 Instr: READCH . LPAR IDENT RPAR PV
+   37 Instr: READCH . LPAR IDENT RPAR PV
 
     LPAR  décalage et aller à l'état 87
 
@@ -770,9 +794,9 @@ LValue (52)
 
 État 68
 
-   39 Instr: Bloc .
+   40 Instr: Bloc .
 
-    $défaut  réduction par utilisation de la règle 39 (Instr)
+    $défaut  réduction par utilisation de la règle 40 (Instr)
 
 
 État 69
@@ -792,7 +816,7 @@ LValue (52)
 État 71
 
    26 SuiteInstr: SuiteInstr . Instr
-   40 Bloc: LCUR SuiteInstr . RCUR
+   45 Bloc: LCUR SuiteInstr . RCUR
 
     PV      décalage et aller à l'état 57
     LCUR    décalage et aller à l'état 58
@@ -812,7 +836,7 @@ LValue (52)
 
 État 72
 
-   34 Instr: IDENT LPAR . Arguments RPAR PV
+   35 Instr: IDENT LPAR . Arguments RPAR PV
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -821,7 +845,7 @@ LValue (52)
     CARACTERE  décalage et aller à l'état 81
     ADDSUB     décalage et aller à l'état 82
 
-    $défaut  réduction par utilisation de la règle 42 (Arguments)
+    $défaut  réduction par utilisation de la règle 47 (Arguments)
 
     Arguments  aller à l'état 90
     ListExp    aller à l'état 91
@@ -831,7 +855,7 @@ LValue (52)
 
 État 73
 
-   58 LValue: IDENT LSQB . Exp RSQB
+   63 LValue: IDENT LSQB . Exp RSQB
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -846,8 +870,8 @@ LValue (52)
 
 État 74
 
-   29 Instr: IF LPAR . Exp RPAR Instr
-   30      | IF LPAR . Exp RPAR Instr ELSE Instr
+   29 Instr: IF LPAR . Exp IFACTION RPAR Instr
+   31      | IF LPAR . Exp IFACTION RPAR Instr ELSE ELSEACTION $@1 Instr
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -862,29 +886,21 @@ LValue (52)
 
 État 75
 
-   31 Instr: WHILE LPAR . Exp RPAR Instr
+   32 Instr: WHILE WHILELABEL . LPAR Exp RPAR WHILECOMP Instr
 
-    LPAR       décalage et aller à l'état 77
-    IDENT      décalage et aller à l'état 78
-    NEGATION   décalage et aller à l'état 79
-    NUM        décalage et aller à l'état 80
-    CARACTERE  décalage et aller à l'état 81
-    ADDSUB     décalage et aller à l'état 82
-
-    Exp     aller à l'état 95
-    LValue  aller à l'état 84
+    LPAR  décalage et aller à l'état 95
 
 
 État 76
 
-   33 Instr: RETURN PV .
+   34 Instr: RETURN PV .
 
-    $défaut  réduction par utilisation de la règle 33 (Instr)
+    $défaut  réduction par utilisation de la règle 34 (Instr)
 
 
 État 77
 
-   51 Exp: LPAR . Exp RPAR
+   56 Exp: LPAR . Exp RPAR
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -899,19 +915,19 @@ LValue (52)
 
 État 78
 
-   56 Exp: IDENT . LPAR Arguments RPAR
-   57 LValue: IDENT .
-   58       | IDENT . LSQB Exp RSQB
+   61 Exp: IDENT . LPAR Arguments RPAR
+   62 LValue: IDENT .
+   63       | IDENT . LSQB Exp RSQB
 
     LPAR  décalage et aller à l'état 97
     LSQB  décalage et aller à l'état 73
 
-    $défaut  réduction par utilisation de la règle 57 (LValue)
+    $défaut  réduction par utilisation de la règle 62 (LValue)
 
 
 État 79
 
-   50 Exp: NEGATION . Exp
+   55 Exp: NEGATION . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -926,21 +942,21 @@ LValue (52)
 
 État 80
 
-   53 Exp: NUM .
+   58 Exp: NUM .
 
-    $défaut  réduction par utilisation de la règle 53 (Exp)
+    $défaut  réduction par utilisation de la règle 58 (Exp)
 
 
 État 81
 
-   54 Exp: CARACTERE .
+   59 Exp: CARACTERE .
 
-    $défaut  réduction par utilisation de la règle 54 (Exp)
+    $défaut  réduction par utilisation de la règle 59 (Exp)
 
 
 État 82
 
-   48 Exp: ADDSUB . Exp
+   54 Exp: ADDSUB . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -955,12 +971,12 @@ LValue (52)
 
 État 83
 
-   32 Instr: RETURN Exp . PV
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   33 Instr: RETURN Exp . PV
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     PV       décalage et aller à l'état 100
     IF       décalage et aller à l'état 101
@@ -972,14 +988,14 @@ LValue (52)
 
 État 84
 
-   52 Exp: LValue .
+   57 Exp: LValue .
 
-    $défaut  réduction par utilisation de la règle 52 (Exp)
+    $défaut  réduction par utilisation de la règle 57 (Exp)
 
 
 État 85
 
-   37 Instr: PRINT LPAR . Exp RPAR PV
+   38 Instr: PRINT LPAR . Exp RPAR PV
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -994,14 +1010,14 @@ LValue (52)
 
 État 86
 
-   35 Instr: READ LPAR . IDENT RPAR PV
+   36 Instr: READ LPAR . IDENT RPAR PV
 
     IDENT  décalage et aller à l'état 107
 
 
 État 87
 
-   36 Instr: READCH LPAR . IDENT RPAR PV
+   37 Instr: READCH LPAR . IDENT RPAR PV
 
     IDENT  décalage et aller à l'état 108
 
@@ -1023,36 +1039,36 @@ LValue (52)
 
 État 89
 
-   40 Bloc: LCUR SuiteInstr RCUR .
+   45 Bloc: LCUR SuiteInstr RCUR .
 
-    $défaut  réduction par utilisation de la règle 40 (Bloc)
+    $défaut  réduction par utilisation de la règle 45 (Bloc)
 
 
 État 90
 
-   34 Instr: IDENT LPAR Arguments . RPAR PV
+   35 Instr: IDENT LPAR Arguments . RPAR PV
 
     RPAR  décalage et aller à l'état 110
 
 
 État 91
 
-   41 Arguments: ListExp .
-   43 ListExp: ListExp . VRG Exp
+   46 Arguments: ListExp .
+   48 ListExp: ListExp . VRG Exp
 
     VRG  décalage et aller à l'état 111
 
-    $défaut  réduction par utilisation de la règle 41 (Arguments)
+    $défaut  réduction par utilisation de la règle 46 (Arguments)
 
 
 État 92
 
-   44 ListExp: Exp .
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   49 ListExp: Exp .
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
     ADDSUB   décalage et aller à l'état 102
@@ -1060,17 +1076,17 @@ LValue (52)
     COMP     décalage et aller à l'état 104
     BOPE     décalage et aller à l'état 105
 
-    $défaut  réduction par utilisation de la règle 44 (ListExp)
+    $défaut  réduction par utilisation de la règle 49 (ListExp)
 
 
 État 93
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
-   58 LValue: IDENT LSQB Exp . RSQB
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
+   63 LValue: IDENT LSQB Exp . RSQB
 
     RSQB     décalage et aller à l'état 112
     IF       décalage et aller à l'état 101
@@ -1082,47 +1098,48 @@ LValue (52)
 
 État 94
 
-   29 Instr: IF LPAR Exp . RPAR Instr
-   30      | IF LPAR Exp . RPAR Instr ELSE Instr
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   29 Instr: IF LPAR Exp . IFACTION RPAR Instr
+   31      | IF LPAR Exp . IFACTION RPAR Instr ELSE ELSEACTION $@1 Instr
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
-    RPAR     décalage et aller à l'état 113
     IF       décalage et aller à l'état 101
     ADDSUB   décalage et aller à l'état 102
     DIVSTAR  décalage et aller à l'état 103
     COMP     décalage et aller à l'état 104
     BOPE     décalage et aller à l'état 105
+
+    $défaut  réduction par utilisation de la règle 41 (IFACTION)
+
+    IFACTION  aller à l'état 113
 
 
 État 95
 
-   31 Instr: WHILE LPAR Exp . RPAR Instr
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   32 Instr: WHILE WHILELABEL LPAR . Exp RPAR WHILECOMP Instr
 
-    RPAR     décalage et aller à l'état 114
-    IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
-    DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
+    LPAR       décalage et aller à l'état 77
+    IDENT      décalage et aller à l'état 78
+    NEGATION   décalage et aller à l'état 79
+    NUM        décalage et aller à l'état 80
+    CARACTERE  décalage et aller à l'état 81
+    ADDSUB     décalage et aller à l'état 82
+
+    Exp     aller à l'état 114
+    LValue  aller à l'état 84
 
 
 État 96
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   51    | LPAR Exp . RPAR
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   56    | LPAR Exp . RPAR
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     RPAR     décalage et aller à l'état 115
     IF       décalage et aller à l'état 101
@@ -1134,7 +1151,7 @@ LValue (52)
 
 État 97
 
-   56 Exp: IDENT LPAR . Arguments RPAR
+   61 Exp: IDENT LPAR . Arguments RPAR
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1143,7 +1160,7 @@ LValue (52)
     CARACTERE  décalage et aller à l'état 81
     ADDSUB     décalage et aller à l'état 82
 
-    $défaut  réduction par utilisation de la règle 42 (Arguments)
+    $défaut  réduction par utilisation de la règle 47 (Arguments)
 
     Arguments  aller à l'état 116
     ListExp    aller à l'état 91
@@ -1153,12 +1170,12 @@ LValue (52)
 
 État 98
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   50    | NEGATION Exp .
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   55    | NEGATION Exp .
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
     ADDSUB   décalage et aller à l'état 102
@@ -1166,54 +1183,48 @@ LValue (52)
     COMP     décalage et aller à l'état 104
     BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 50 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 50 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 50 (Exp)]
-    COMP      [réduction par utilisation de la règle 50 (Exp)]
-    BOPE      [réduction par utilisation de la règle 50 (Exp)]
-    $défaut  réduction par utilisation de la règle 50 (Exp)
+    IF        [réduction par utilisation de la règle 55 (Exp)]
+    ADDSUB    [réduction par utilisation de la règle 55 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 55 (Exp)]
+    COMP      [réduction par utilisation de la règle 55 (Exp)]
+    BOPE      [réduction par utilisation de la règle 55 (Exp)]
+    $défaut  réduction par utilisation de la règle 55 (Exp)
 
 
 État 99
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   48    | ADDSUB Exp .
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   54    | ADDSUB Exp .
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
     DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 48 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 48 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 48 (Exp)]
-    COMP      [réduction par utilisation de la règle 48 (Exp)]
-    BOPE      [réduction par utilisation de la règle 48 (Exp)]
-    $défaut  réduction par utilisation de la règle 48 (Exp)
+    IF        [réduction par utilisation de la règle 54 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 54 (Exp)]
+    $défaut  réduction par utilisation de la règle 54 (Exp)
 
 
 État 100
 
-   32 Instr: RETURN Exp PV .
+   33 Instr: RETURN Exp PV .
 
-    $défaut  réduction par utilisation de la règle 32 (Instr)
+    $défaut  réduction par utilisation de la règle 33 (Instr)
 
 
 État 101
 
-   55 Exp: Exp IF . LPAR Exp RPAR ELSE Exp
+   60 Exp: Exp IF . LPAR Exp RPAR ELSE Exp
 
     LPAR  décalage et aller à l'état 117
 
 
 État 102
 
-   45 Exp: Exp ADDSUB . Exp
+   50 Exp: Exp ADDSUB . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1228,7 +1239,7 @@ LValue (52)
 
 État 103
 
-   46 Exp: Exp DIVSTAR . Exp
+   51 Exp: Exp DIVSTAR . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1243,7 +1254,7 @@ LValue (52)
 
 État 104
 
-   47 Exp: Exp COMP . Exp
+   52 Exp: Exp COMP . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1258,7 +1269,7 @@ LValue (52)
 
 État 105
 
-   49 Exp: Exp BOPE . Exp
+   53 Exp: Exp BOPE . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1273,12 +1284,12 @@ LValue (52)
 
 État 106
 
-   37 Instr: PRINT LPAR Exp . RPAR PV
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   38 Instr: PRINT LPAR Exp . RPAR PV
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     RPAR     décalage et aller à l'état 122
     IF       décalage et aller à l'état 101
@@ -1290,14 +1301,14 @@ LValue (52)
 
 État 107
 
-   35 Instr: READ LPAR IDENT . RPAR PV
+   36 Instr: READ LPAR IDENT . RPAR PV
 
     RPAR  décalage et aller à l'état 123
 
 
 État 108
 
-   36 Instr: READCH LPAR IDENT . RPAR PV
+   37 Instr: READCH LPAR IDENT . RPAR PV
 
     RPAR  décalage et aller à l'état 124
 
@@ -1305,11 +1316,11 @@ LValue (52)
 État 109
 
    28 Instr: LValue EGAL Exp . PV
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     PV       décalage et aller à l'état 125
     IF       décalage et aller à l'état 101
@@ -1321,14 +1332,14 @@ LValue (52)
 
 État 110
 
-   34 Instr: IDENT LPAR Arguments RPAR . PV
+   35 Instr: IDENT LPAR Arguments RPAR . PV
 
     PV  décalage et aller à l'état 126
 
 
 État 111
 
-   43 ListExp: ListExp VRG . Exp
+   48 ListExp: ListExp VRG . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1343,67 +1354,53 @@ LValue (52)
 
 État 112
 
-   58 LValue: IDENT LSQB Exp RSQB .
+   63 LValue: IDENT LSQB Exp RSQB .
 
-    $défaut  réduction par utilisation de la règle 58 (LValue)
+    $défaut  réduction par utilisation de la règle 63 (LValue)
 
 
 État 113
 
-   29 Instr: IF LPAR Exp RPAR . Instr
-   30      | IF LPAR Exp RPAR . Instr ELSE Instr
+   29 Instr: IF LPAR Exp IFACTION . RPAR Instr
+   31      | IF LPAR Exp IFACTION . RPAR Instr ELSE ELSEACTION $@1 Instr
 
-    PV      décalage et aller à l'état 57
-    LCUR    décalage et aller à l'état 58
-    IDENT   décalage et aller à l'état 60
-    IF      décalage et aller à l'état 61
-    WHILE   décalage et aller à l'état 62
-    RETURN  décalage et aller à l'état 63
-    PRINT   décalage et aller à l'état 64
-    READ    décalage et aller à l'état 65
-    READCH  décalage et aller à l'état 66
-
-    Instr   aller à l'état 128
-    Bloc    aller à l'état 68
-    LValue  aller à l'état 69
+    RPAR  décalage et aller à l'état 128
 
 
 État 114
 
-   31 Instr: WHILE LPAR Exp RPAR . Instr
+   32 Instr: WHILE WHILELABEL LPAR Exp . RPAR WHILECOMP Instr
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
-    PV      décalage et aller à l'état 57
-    LCUR    décalage et aller à l'état 58
-    IDENT   décalage et aller à l'état 60
-    IF      décalage et aller à l'état 61
-    WHILE   décalage et aller à l'état 62
-    RETURN  décalage et aller à l'état 63
-    PRINT   décalage et aller à l'état 64
-    READ    décalage et aller à l'état 65
-    READCH  décalage et aller à l'état 66
-
-    Instr   aller à l'état 129
-    Bloc    aller à l'état 68
-    LValue  aller à l'état 69
+    RPAR     décalage et aller à l'état 129
+    IF       décalage et aller à l'état 101
+    ADDSUB   décalage et aller à l'état 102
+    DIVSTAR  décalage et aller à l'état 103
+    COMP     décalage et aller à l'état 104
+    BOPE     décalage et aller à l'état 105
 
 
 État 115
 
-   51 Exp: LPAR Exp RPAR .
+   56 Exp: LPAR Exp RPAR .
 
-    $défaut  réduction par utilisation de la règle 51 (Exp)
+    $défaut  réduction par utilisation de la règle 56 (Exp)
 
 
 État 116
 
-   56 Exp: IDENT LPAR Arguments . RPAR
+   61 Exp: IDENT LPAR Arguments . RPAR
 
     RPAR  décalage et aller à l'état 130
 
 
 État 117
 
-   55 Exp: Exp IF LPAR . Exp RPAR ELSE Exp
+   60 Exp: Exp IF LPAR . Exp RPAR ELSE Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1418,35 +1415,29 @@ LValue (52)
 
 État 118
 
-   45 Exp: Exp . ADDSUB Exp
-   45    | Exp ADDSUB Exp .
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   50    | Exp ADDSUB Exp .
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
     DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 45 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 45 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 45 (Exp)]
-    COMP      [réduction par utilisation de la règle 45 (Exp)]
-    BOPE      [réduction par utilisation de la règle 45 (Exp)]
-    $défaut  réduction par utilisation de la règle 45 (Exp)
+    IF        [réduction par utilisation de la règle 50 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 50 (Exp)]
+    $défaut  réduction par utilisation de la règle 50 (Exp)
 
 
 État 119
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   46    | Exp DIVSTAR Exp .
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   51    | Exp DIVSTAR Exp .
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
     ADDSUB   décalage et aller à l'état 102
@@ -1454,77 +1445,65 @@ LValue (52)
     COMP     décalage et aller à l'état 104
     BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 46 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 46 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 46 (Exp)]
-    COMP      [réduction par utilisation de la règle 46 (Exp)]
-    BOPE      [réduction par utilisation de la règle 46 (Exp)]
-    $défaut  réduction par utilisation de la règle 46 (Exp)
+    IF        [réduction par utilisation de la règle 51 (Exp)]
+    ADDSUB    [réduction par utilisation de la règle 51 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 51 (Exp)]
+    COMP      [réduction par utilisation de la règle 51 (Exp)]
+    BOPE      [réduction par utilisation de la règle 51 (Exp)]
+    $défaut  réduction par utilisation de la règle 51 (Exp)
 
 
 État 120
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   47    | Exp COMP Exp .
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   52    | Exp COMP Exp .
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
     DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 47 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 47 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 47 (Exp)]
-    COMP      [réduction par utilisation de la règle 47 (Exp)]
-    BOPE      [réduction par utilisation de la règle 47 (Exp)]
-    $défaut  réduction par utilisation de la règle 47 (Exp)
+    IF        [réduction par utilisation de la règle 52 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 52 (Exp)]
+    $défaut  réduction par utilisation de la règle 52 (Exp)
 
 
 État 121
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   49    | Exp BOPE Exp .
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   53    | Exp BOPE Exp .
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
     IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
     DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 49 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 49 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 49 (Exp)]
-    COMP      [réduction par utilisation de la règle 49 (Exp)]
-    BOPE      [réduction par utilisation de la règle 49 (Exp)]
-    $défaut  réduction par utilisation de la règle 49 (Exp)
+    IF        [réduction par utilisation de la règle 53 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 53 (Exp)]
+    $défaut  réduction par utilisation de la règle 53 (Exp)
 
 
 État 122
 
-   37 Instr: PRINT LPAR Exp RPAR . PV
+   38 Instr: PRINT LPAR Exp RPAR . PV
 
     PV  décalage et aller à l'état 132
 
 
 État 123
 
-   35 Instr: READ LPAR IDENT RPAR . PV
+   36 Instr: READ LPAR IDENT RPAR . PV
 
     PV  décalage et aller à l'état 133
 
 
 État 124
 
-   36 Instr: READCH LPAR IDENT RPAR . PV
+   37 Instr: READCH LPAR IDENT RPAR . PV
 
     PV  décalage et aller à l'état 134
 
@@ -1538,95 +1517,33 @@ LValue (52)
 
 État 126
 
-   34 Instr: IDENT LPAR Arguments RPAR PV .
-
-    $défaut  réduction par utilisation de la règle 34 (Instr)
-
-
-État 127
-
-   43 ListExp: ListExp VRG Exp .
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
-
-    IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
-    DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
-
-    $défaut  réduction par utilisation de la règle 43 (ListExp)
-
-
-État 128
-
-   29 Instr: IF LPAR Exp RPAR Instr .
-   30      | IF LPAR Exp RPAR Instr . ELSE Instr
-
-    ELSE  décalage et aller à l'état 135
-
-    ELSE      [réduction par utilisation de la règle 29 (Instr)]
-    $défaut  réduction par utilisation de la règle 29 (Instr)
-
-
-État 129
-
-   31 Instr: WHILE LPAR Exp RPAR Instr .
-
-    $défaut  réduction par utilisation de la règle 31 (Instr)
-
-
-État 130
-
-   56 Exp: IDENT LPAR Arguments RPAR .
-
-    $défaut  réduction par utilisation de la règle 56 (Exp)
-
-
-État 131
-
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
-   55    | Exp IF LPAR Exp . RPAR ELSE Exp
-
-    RPAR     décalage et aller à l'état 136
-    IF       décalage et aller à l'état 101
-    ADDSUB   décalage et aller à l'état 102
-    DIVSTAR  décalage et aller à l'état 103
-    COMP     décalage et aller à l'état 104
-    BOPE     décalage et aller à l'état 105
-
-
-État 132
-
-   37 Instr: PRINT LPAR Exp RPAR PV .
-
-    $défaut  réduction par utilisation de la règle 37 (Instr)
-
-
-État 133
-
-   35 Instr: READ LPAR IDENT RPAR PV .
+   35 Instr: IDENT LPAR Arguments RPAR PV .
 
     $défaut  réduction par utilisation de la règle 35 (Instr)
 
 
-État 134
+État 127
 
-   36 Instr: READCH LPAR IDENT RPAR PV .
+   48 ListExp: ListExp VRG Exp .
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
 
-    $défaut  réduction par utilisation de la règle 36 (Instr)
+    IF       décalage et aller à l'état 101
+    ADDSUB   décalage et aller à l'état 102
+    DIVSTAR  décalage et aller à l'état 103
+    COMP     décalage et aller à l'état 104
+    BOPE     décalage et aller à l'état 105
+
+    $défaut  réduction par utilisation de la règle 48 (ListExp)
 
 
-État 135
+État 128
 
-   30 Instr: IF LPAR Exp RPAR Instr ELSE . Instr
+   29 Instr: IF LPAR Exp IFACTION RPAR . Instr
+   31      | IF LPAR Exp IFACTION RPAR . Instr ELSE ELSEACTION $@1 Instr
 
     PV      décalage et aller à l'état 57
     LCUR    décalage et aller à l'état 58
@@ -1638,28 +1555,121 @@ LValue (52)
     READ    décalage et aller à l'état 65
     READCH  décalage et aller à l'état 66
 
-    Instr   aller à l'état 137
+    Instr   aller à l'état 135
     Bloc    aller à l'état 68
     LValue  aller à l'état 69
 
 
-État 136
+État 129
 
-   55 Exp: Exp IF LPAR Exp RPAR . ELSE Exp
+   32 Instr: WHILE WHILELABEL LPAR Exp RPAR . WHILECOMP Instr
+
+    $défaut  réduction par utilisation de la règle 44 (WHILECOMP)
+
+    WHILECOMP  aller à l'état 136
+
+
+État 130
+
+   61 Exp: IDENT LPAR Arguments RPAR .
+
+    $défaut  réduction par utilisation de la règle 61 (Exp)
+
+
+État 131
+
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
+   60    | Exp IF LPAR Exp . RPAR ELSE Exp
+
+    RPAR     décalage et aller à l'état 137
+    IF       décalage et aller à l'état 101
+    ADDSUB   décalage et aller à l'état 102
+    DIVSTAR  décalage et aller à l'état 103
+    COMP     décalage et aller à l'état 104
+    BOPE     décalage et aller à l'état 105
+
+
+État 132
+
+   38 Instr: PRINT LPAR Exp RPAR PV .
+
+    $défaut  réduction par utilisation de la règle 38 (Instr)
+
+
+État 133
+
+   36 Instr: READ LPAR IDENT RPAR PV .
+
+    $défaut  réduction par utilisation de la règle 36 (Instr)
+
+
+État 134
+
+   37 Instr: READCH LPAR IDENT RPAR PV .
+
+    $défaut  réduction par utilisation de la règle 37 (Instr)
+
+
+État 135
+
+   29 Instr: IF LPAR Exp IFACTION RPAR Instr .
+   31      | IF LPAR Exp IFACTION RPAR Instr . ELSE ELSEACTION $@1 Instr
 
     ELSE  décalage et aller à l'état 138
+
+    ELSE      [réduction par utilisation de la règle 29 (Instr)]
+    $défaut  réduction par utilisation de la règle 29 (Instr)
+
+
+État 136
+
+   32 Instr: WHILE WHILELABEL LPAR Exp RPAR WHILECOMP . Instr
+
+    PV      décalage et aller à l'état 57
+    LCUR    décalage et aller à l'état 58
+    IDENT   décalage et aller à l'état 60
+    IF      décalage et aller à l'état 61
+    WHILE   décalage et aller à l'état 62
+    RETURN  décalage et aller à l'état 63
+    PRINT   décalage et aller à l'état 64
+    READ    décalage et aller à l'état 65
+    READCH  décalage et aller à l'état 66
+
+    Instr   aller à l'état 139
+    Bloc    aller à l'état 68
+    LValue  aller à l'état 69
 
 
 État 137
 
-   30 Instr: IF LPAR Exp RPAR Instr ELSE Instr .
+   60 Exp: Exp IF LPAR Exp RPAR . ELSE Exp
 
-    $défaut  réduction par utilisation de la règle 30 (Instr)
+    ELSE  décalage et aller à l'état 140
 
 
 État 138
 
-   55 Exp: Exp IF LPAR Exp RPAR ELSE . Exp
+   31 Instr: IF LPAR Exp IFACTION RPAR Instr ELSE . ELSEACTION $@1 Instr
+
+    $défaut  réduction par utilisation de la règle 42 (ELSEACTION)
+
+    ELSEACTION  aller à l'état 141
+
+
+État 139
+
+   32 Instr: WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr .
+
+    $défaut  réduction par utilisation de la règle 32 (Instr)
+
+
+État 140
+
+   60 Exp: Exp IF LPAR Exp RPAR ELSE . Exp
 
     LPAR       décalage et aller à l'état 77
     IDENT      décalage et aller à l'état 78
@@ -1668,18 +1678,27 @@ LValue (52)
     CARACTERE  décalage et aller à l'état 81
     ADDSUB     décalage et aller à l'état 82
 
-    Exp     aller à l'état 139
+    Exp     aller à l'état 142
     LValue  aller à l'état 84
 
 
-État 139
+État 141
 
-   45 Exp: Exp . ADDSUB Exp
-   46    | Exp . DIVSTAR Exp
-   47    | Exp . COMP Exp
-   49    | Exp . BOPE Exp
-   55    | Exp . IF LPAR Exp RPAR ELSE Exp
-   55    | Exp IF LPAR Exp RPAR ELSE Exp .
+   31 Instr: IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION . $@1 Instr
+
+    $défaut  réduction par utilisation de la règle 30 ($@1)
+
+    $@1  aller à l'état 143
+
+
+État 142
+
+   50 Exp: Exp . ADDSUB Exp
+   51    | Exp . DIVSTAR Exp
+   52    | Exp . COMP Exp
+   53    | Exp . BOPE Exp
+   60    | Exp . IF LPAR Exp RPAR ELSE Exp
+   60    | Exp IF LPAR Exp RPAR ELSE Exp .
 
     IF       décalage et aller à l'état 101
     ADDSUB   décalage et aller à l'état 102
@@ -1687,9 +1706,35 @@ LValue (52)
     COMP     décalage et aller à l'état 104
     BOPE     décalage et aller à l'état 105
 
-    IF        [réduction par utilisation de la règle 55 (Exp)]
-    ADDSUB    [réduction par utilisation de la règle 55 (Exp)]
-    DIVSTAR   [réduction par utilisation de la règle 55 (Exp)]
-    COMP      [réduction par utilisation de la règle 55 (Exp)]
-    BOPE      [réduction par utilisation de la règle 55 (Exp)]
-    $défaut  réduction par utilisation de la règle 55 (Exp)
+    IF        [réduction par utilisation de la règle 60 (Exp)]
+    ADDSUB    [réduction par utilisation de la règle 60 (Exp)]
+    DIVSTAR   [réduction par utilisation de la règle 60 (Exp)]
+    COMP      [réduction par utilisation de la règle 60 (Exp)]
+    BOPE      [réduction par utilisation de la règle 60 (Exp)]
+    $défaut  réduction par utilisation de la règle 60 (Exp)
+
+
+État 143
+
+   31 Instr: IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION $@1 . Instr
+
+    PV      décalage et aller à l'état 57
+    LCUR    décalage et aller à l'état 58
+    IDENT   décalage et aller à l'état 60
+    IF      décalage et aller à l'état 61
+    WHILE   décalage et aller à l'état 62
+    RETURN  décalage et aller à l'état 63
+    PRINT   décalage et aller à l'état 64
+    READ    décalage et aller à l'état 65
+    READCH  décalage et aller à l'état 66
+
+    Instr   aller à l'état 144
+    Bloc    aller à l'état 68
+    LValue  aller à l'état 69
+
+
+État 144
+
+   31 Instr: IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION $@1 Instr .
+
+    $défaut  réduction par utilisation de la règle 31 (Instr)
