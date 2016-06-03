@@ -2,43 +2,77 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define IDENT_MAX 64 
-
+#define IDENT_MAX 64
 
 #define VOID 0
 #define ENTIER 1
-#define CHAR 2 
+#define CHAR 2
+#define CONST 3
 
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
 /*int yylval;*/
 
+int VARS_MAX = 1000
+int FUN_MAX = 1000
+
 int jump_label = 0;
 int size_fun_sym = 0;
+int nb_vars = 0;
+int nb_funs = 0;
+
+var_sym vars[VARS_MAX];
+fun_sym funs[FUN_MAX];
 
 void inst(const char *);
 void instarg(const char *,int);
 void comment(const char *);
 
-typedef struc{
+typedef struct {
       char name[IDENT_MAX];
       int type;
+      int value
       int size;
+      int posi;
+      int num_lab;
 }var_sym;
 
-typedef struc{
+typedef struct {
       char name[IDENT_MAX];
       int return_type;
       int return_value;
       int nb_arg;
       int num_lab;
-      var_sym *vars;
+      var_sym *fun_vars;
+}fun_sym;
+
+int is_var_in
+
+void add_var_sym (char * name, int type, int value, int num_lab){
+      int i;
+      
+      for (i = 0; i < nb_vars; i++){
+            if (cmp(name, vars[i].name)){
+                  fprintf(stderr, "ERROR %s IS ALREADY USED\n", name);
+                  exit(EXIT_FAILURE);
+            }
+      }
+      if (nb_vars == VARS_MAX){
+           if (NULL == realloc (vars, VARS_MAX * 2)){
+                  fprintf(stderr, "NO MORE SPACE LEFT\n");
+                  exit(EXIT_FAILURE);
+            }
+            VARS_MAX *= 2;
+      }
+      strcpy(vars[nb_vars].name, name);
+      vars[nb_vars].type = type;
+      vars[nb_vars].value = value;
+      vars[nb_vars].num_lab = num_lab;
+      vars[nb_vars].posi = 0;
 }
 
-void init_fun (char * name, int )
 
-void add_var_in_func()
 
 %}
 
@@ -68,7 +102,11 @@ void add_var_in_func()
 Prog         : DeclConsts DeclVars DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
-ListConst    : ListConst VRG IDENT EGAL Litteral
+ListConst    : ListConst VRG IDENT EGAL Litteral 
+                                                {
+                                                      add_var_sym($3, CONST, $5, jump_label++);
+
+                                                }
              | IDENT EGAL Litteral {/*$1 = $3;*/};
 Litteral     : NombreSigne {/*$$ = $1;*/}
              | CARACTERE {/*$$ = $1;*/};
