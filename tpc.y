@@ -14,6 +14,7 @@ void comment(const char *);
 
 %union {
 	char id[64];
+	char character[4];
 	char bop[3];
 	char op;
 	int val;
@@ -24,11 +25,13 @@ void comment(const char *);
 %token IF ELSE WHILE RETURN PRINT READ READCH CONST
 %token MAIN VOID NEGATION
 %token TYPE
-%token <val> NUM CARACTERE
+%token <val> NUM
+%token <character> CARACTERE
 %token <op> ADDSUB DIVSTAR
 %token <bop> COMP BOPE
 
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
+%type <val> ListTypVar Parametres
 
 %left COMP BOPE ADDSUB
 %left unaryOp
@@ -54,11 +57,11 @@ DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct Corps ;
 EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR
-             | VOID IDENT LPAR Parametres RPAR ;
-Parametres   : VOID
-             | ListTypVar ;
-ListTypVar   : ListTypVar VRG TYPE IDENT
-             | TYPE IDENT ;
+             | VOID IDENT LPAR Parametres RPAR {/* $4 contient le nombre de paramètres */};
+Parametres   : VOID {$$ = 0;}
+             | ListTypVar {$$ = $1;};
+ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1;}
+             | TYPE IDENT {$$ = 1;};
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
@@ -130,14 +133,14 @@ Exp          : Exp ADDSUB Exp {
 					inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("SWAP"); inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);
 				}
              | ADDSUB Exp %prec unaryOp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
-             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH"); /*$$ = ($2) ? 0 : 1;*/}
-             | LPAR Exp RPAR {/*$$ = $2;*/}
-             | LValue {/*$$ = $1;*/}
+             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH");}
+             | LPAR Exp RPAR {/*Rien à faire*/}
+             | LValue {/*Table des symboles*/}
              | NUM {instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
-             | CARACTERE {/*$$ = $1;*/}
+             | CARACTERE {instarg ("SET", *($1 + 1)); inst ("PUSH");/*$$ = $1;*/}
              | Exp IF LPAR Exp RPAR ELSE Exp {/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR {/* Un appel de fonction */}; 
-LValue       : IDENT {/*$$ = $1;*/}
+LValue       : IDENT {/*Table des symboles*/}
              | IDENT LSQB Exp RSQB {/* Tableaux */};
 %%
 
