@@ -4,10 +4,10 @@
 
 #define IDENT_MAX 64
 
-#define VOID 0
-#define ENTIER 1
-#define CHAR 2
-#define CONST 3
+#define __VOID__ 0
+#define __ENTIER__ 1
+#define __CHAR__ 2
+#define __CONST__ 3
 
 int yyerror(char*);
 int yylex();
@@ -49,6 +49,7 @@ typedef struct {
 void add_var_fun (char * name_var, int type_var, int value_var, int position, int num_lab_fun);
 int search_var_fun (char * name);
 void add_fun (char * name, int return_type, int nb_arg);
+int convert_type (char * type_name);
 
 %}
 
@@ -84,11 +85,11 @@ DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire 
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral 
                                                 {
-                                                      add_var_sym($3, CONST, $5, jump_label++);
+                                                      add_var_sym($3, __CONST__, $5, jump_label++);
                                                       instarg("ALLOC", 1);
 
                                                 }
-             | IDENT EGAL Litteral {add_var_sym($1, CONST, $3, jump_label++);}
+             | IDENT EGAL Litteral {add_var_sym($1, __CONST__, $3, jump_label++);}
 Litteral     : NombreSigne {/*$$ = $1;*/}
              | CARACTERE {/*$$ = $1;*/};
 NombreSigne  : NUM {/*$$ = $1;*/}
@@ -101,9 +102,9 @@ Declarateur  : IDENT
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
-DeclFonct    : EnTeteFonct Corps ;
-EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR
-             | VOID IDENT LPAR Parametres RPAR {/* $4 contient le nombre de paramètres */};
+DeclFonct    : EnTeteFonct Corps {/*FAIRE LE CORPS*/} ;
+EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4);}
+             | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4);};
 Parametres   : VOID {$$ = 0;}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1;}
@@ -205,6 +206,14 @@ void instarg(const char *s,int n){
 
 void comment(const char *s){
   printf("#%s\n",s);
+}
+
+int convert_type (char * type_name){
+      switch (*type_name){
+            case 'e' : return __ENTIER__;
+            case 'c' : return __CHAR__;
+            default : fprintf(stderr, "THIS TYPE %s DOES NOT EXIST \n", type_name); exit(EXIT_FAILURE);
+      }
 }
 
 void add_fun (char * name, int return_type, int nb_arg){
