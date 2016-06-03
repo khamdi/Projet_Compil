@@ -128,10 +128,10 @@ ELSEACTION	 : {instarg ("JUMP", $$=jump_label++);};
 WHILELABEL	 : {instarg ("LABEL", $$=jump_label++);};
 WHILECOMP	 : {instarg ("JUMPF", $$=jump_label++);};
 Bloc         : LCUR SuiteInstr RCUR ;
-Arguments    : ListExp {/* Count args */}
-             | ;
-ListExp      : ListExp VRG Exp
-             | Exp ;
+Arguments    : ListExp {$$ = $1;/* Count args : $1 */}
+             | {$$ = 0;};
+ListExp      : ListExp VRG Exp {$$ = $1 + 1;}
+             | Exp {$$ = 1};
 Exp          : Exp ADDSUB Exp {
 				inst("POP");
 				inst("SWAP");
@@ -184,7 +184,7 @@ Exp          : Exp ADDSUB Exp {
              | LValue {instarg ("SET", search_var_fun ($1)); inst ("LOADR"); inst ("PUSH");/*Table des symboles : LOADR*/}
              | NUM {instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
              | CARACTERE {instarg ("SET", *($1 + 1)); inst ("PUSH");/*$$ = $1;*/}
-             | Exp IF LPAR Exp RPAR ELSE Exp {/*$$ = ($4) ? $1: $6;*/}
+             | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR {/* Un appel de fonction */}; 
 LValue       : IDENT {$$ = $1;/*Table des symboles*/}
              | IDENT LSQB Exp RSQB {$$ = $1;/* Tableaux : manipulation de l'indice */};
