@@ -25,7 +25,7 @@ void						{return VOID;}
 
 "entier"|"caractere"		{return TYPE;}
 {num}						{sscanf(yytext," %d",&(yylval.val)); return NUM;}
-\'[A-Za-z0-9]\'				{return CARACTERE;}
+\'[A-Za-z0-9]\'				{snprintf (yylval.character, 4, "%s", yytext); return CARACTERE;}
 
 {id}						{snprintf (yylval.id,64,"%s",yytext); return IDENT;}
 
