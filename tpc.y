@@ -2,18 +2,48 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define IDENT_MAX 64 
+
+
+#define VOID 0
+#define ENTIER 1
+#define CHAR 2 
+
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
 /*int yylval;*/
-int jump_label=0;
+
+int jump_label = 0;
+int size_fun_sym = 0;
+
 void inst(const char *);
 void instarg(const char *,int);
 void comment(const char *);
+
+typedef struc{
+      char name[IDENT_MAX];
+      int type;
+      int size;
+}var_sym;
+
+typedef struc{
+      char name[IDENT_MAX];
+      int return_type;
+      int return_value;
+      int nb_arg;
+      int num_lab;
+      var_sym *vars;
+}
+
+void init_fun (char * name, int )
+
+void add_var_in_func()
+
 %}
 
 %union {
-	char id[64];
+	char id[IDENT_MAX];
 	char bop[3];
 	char op;
 	int val;
