@@ -15,7 +15,6 @@
 typedef struct {
       char name[IDENT_MAX];
       int type;
-      int value;
       int size;
       int position;
 }var_sym;
@@ -37,6 +36,7 @@ FILE* yyin;
 
 int top_stack_position = 0;
 
+int count = 0;
 int jump_label = 0;
 int size_fun_sym = 0;
 int nb_funs = 0;
@@ -50,7 +50,7 @@ void comment(const char *);
 void init ();
 void before_exit ();
 
-void add_var_fun (char * name_var, int type_var, int value_var, int position, int num_lab_fun);
+void add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun (char * name);
 void add_fun (char * name, int return_type, int nb_arg);
 int convert_type (char * type_name);
@@ -65,6 +65,10 @@ int convert_type (char * type_name);
 	int val;
 }
 
+%union {
+	int count;
+}
+
 %token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
 %token <id> IDENT
 %token IF ELSE WHILE RETURN PRINT READ READCH CONST
@@ -77,32 +81,34 @@ int convert_type (char * type_name);
 
 %type <id>  LValue
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
-%type <val> ListTypVar Parametres DeclVars Arguments ListExp
+%type <val> ListTypVar Parametres DeclVars Arguments ListExp Litteral NombreSigne ListConst
+%type <count> Declarateurs Declarateur
 
 %left COMP BOPE ADDSUB
 %left unaryOp
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts;
+Prog         : DeclConsts DeclVars {jump_label++;} DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
-ListConst    : ListConst VRG IDENT EGAL Litteral 
-                                                {
-                                                    /*  add_var_sym($3, __CONST__, $5, jump_label++); // Fonction inexistante 
-                                                      instarg("ALLOC", 1); */
-
-                                                }
-             | IDENT EGAL Litteral {/* add_var_sym($1, __CONST__, $3, jump_label++); // Fonction inexistante*/};
-Litteral     : NombreSigne {/*$$ = $1;*/}
-             | CARACTERE {/*$$ = $1;*/};
-NombreSigne  : NUM {/*$$ = $1;*/}
-             | ADDSUB NUM {/*$$ = ($1 == '+') ? $1: -$1;*/};
-DeclVars     : DeclVars TYPE Declarateurs PV{$$ = $1 + 1;}
+ListConst    : ListConst VRG IDENT EGAL Litteral {
+				 $$ = $1 + 1;
+                 add_var_fun($3, __CONST__, count, jump_label); // $3: Identificateur , $$: Numéro de la constante dans l'ordre d'apparition du programme.
+				 count++;
+				 instarg ("SET", $5); 
+                 inst ("PUSH"); 
+               }
+             | IDENT EGAL Litteral {add_var_fun($1, __CONST__, count, jump_label); count++; instarg ("SET", $3); inst ("PUSH");};
+Litteral     : NombreSigne {$$ = $1;}
+             | CARACTERE {$$ = *($1 + 1);};
+NombreSigne  : NUM {$$ = $1;}
+             | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
+DeclVars     : DeclVars TYPE {/*$4 = convert_type ($2);*/ /* $4 pour Déclarateurs (Héritage) */} Declarateurs PV {$$ = $1 + 1;}
              | {$$ = 0;};
-Declarateurs : Declarateurs VRG Declarateur
-             | Declarateur ;
-Declarateur  : IDENT
+Declarateurs : {/*$2 = $$;*/ /* (Héritage) */} Declarateurs VRG {/*$5 = $$;*/ /* (Héritage) */} Declarateur
+             | {/*$2 = $$;*/ /* (Héritage) */} Declarateur;
+Declarateur  : IDENT {add_var_fun($1, $$, count, jump_label); count++; instarg ("ALLOC", 0);}
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
@@ -266,7 +272,7 @@ void add_fun (char * name, int return_type, int nb_arg){
       nb_funs ++;
 }
 
-void add_var_fun (char * name, int type_var, int value_var, int position, int num_lab_fun){
+void add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
       
@@ -290,7 +296,6 @@ void add_var_fun (char * name, int type_var, int value_var, int position, int nu
                   }
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
-                  funs[j].fun_vars[nbs_var_fun].value = value_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
 
                   funs[j].nb_vars ++;
