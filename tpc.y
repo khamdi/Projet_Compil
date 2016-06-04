@@ -1,37 +1,21 @@
 %{
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
-#define IDENT_MAX 64
+#define IDENT_MAX	64
+#define VARS_MAX	64
+#define FUN_MAX		64
 
 #define __VOID__ 0
 #define __ENTIER__ 1
 #define __CHAR__ 2
 #define __CONST__ 3
 
-int yyerror(char*);
-int yylex();
-FILE* yyin; 
-/*int yylval;*/
-
-int VARS_MAX = 1000
-int FUN_MAX = 1000
-int top_stack_position = 0;
-
-int jump_label = 0;
-int size_fun_sym = 0;
-int nb_funs = 0;
-
-fun_sym funs[FUN_MAX];
-
-void inst(const char *);
-void instarg(const char *,int);
-void comment(const char *);
-
 typedef struct {
       char name[IDENT_MAX];
       int type;
-      int value
+      int value;
       int size;
       int position;
 }var_sym;
@@ -40,11 +24,31 @@ typedef struct {
       char name[IDENT_MAX];
       int return_type;
       int nb_arg;
+	  int nb_vars_max;
       int num_lab;
       int nb_vars;
       var_sym *fun_vars;
 }fun_sym;
 
+int yyerror(char*);
+int yylex();
+FILE* yyin; 
+/*int yylval;*/
+
+int top_stack_position = 0;
+
+int jump_label = 0;
+int size_fun_sym = 0;
+int nb_funs = 0;
+int nb_funs_max = FUN_MAX;
+fun_sym* funs = NULL;
+
+void inst(const char *);
+void instarg(const char *,int);
+void comment(const char *);
+
+void init ();
+void before_exit ();
 
 void add_var_fun (char * name_var, int type_var, int value_var, int position, int num_lab_fun);
 int search_var_fun (char * name);
@@ -65,7 +69,7 @@ int convert_type (char * type_name);
 %token <id> IDENT
 %token IF ELSE WHILE RETURN PRINT READ READCH CONST
 %token MAIN VOID NEGATION
-%token TYPE
+%token <id> TYPE
 %token <val> NUM
 %token <character> CARACTERE
 %token <op> ADDSUB DIVSTAR
@@ -73,7 +77,7 @@ int convert_type (char * type_name);
 
 %type <id>  LValue
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
-%type <val> ListTypVar Parametres
+%type <val> ListTypVar Parametres DeclVars Arguments ListExp
 
 %left COMP BOPE ADDSUB
 %left unaryOp
@@ -85,17 +89,17 @@ DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire 
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral 
                                                 {
-                                                      add_var_sym($3, __CONST__, $5, jump_label++);
-                                                      instarg("ALLOC", 1);
+                                                    /*  add_var_sym($3, __CONST__, $5, jump_label++); // Fonction inexistante 
+                                                      instarg("ALLOC", 1); */
 
                                                 }
-             | IDENT EGAL Litteral {add_var_sym($1, __CONST__, $3, jump_label++);}
+             | IDENT EGAL Litteral {/* add_var_sym($1, __CONST__, $3, jump_label++); // Fonction inexistante*/};
 Litteral     : NombreSigne {/*$$ = $1;*/}
              | CARACTERE {/*$$ = $1;*/};
 NombreSigne  : NUM {/*$$ = $1;*/}
              | ADDSUB NUM {/*$$ = ($1 == '+') ? $1: -$1;*/};
-DeclVars     : DeclVars TYPE Declarateurs PV{}
-             | ;
+DeclVars     : DeclVars TYPE Declarateurs PV{$$ = $1 + 1;}
+             | {$$ = 0;};
 Declarateurs : Declarateurs VRG Declarateur
              | Declarateur ;
 Declarateur  : IDENT
@@ -132,7 +136,7 @@ Bloc         : LCUR SuiteInstr RCUR ;
 Arguments    : ListExp {$$ = $1;/* Count args : $1 */}
              | {$$ = 0;};
 ListExp      : ListExp VRG Exp {$$ = $1 + 1;}
-             | Exp {$$ = 1};
+             | Exp {$$ = 1;};
 Exp          : Exp ADDSUB Exp {
 				inst("POP");
 				inst("SWAP");
@@ -216,6 +220,22 @@ int convert_type (char * type_name){
       }
 }
 
+void init () {
+	if (!(funs = malloc (FUN_MAX * sizeof (fun_sym)))) {
+		fprintf (stderr, "Failed allocation : init\n");
+		exit (EXIT_FAILURE);
+	}
+}
+
+void before_exit () {
+	int i;
+
+	for (i = 0 ; i < nb_funs ; i++) {
+		free (funs[i].fun_vars);
+	}
+	free (funs);
+}
+
 void add_fun (char * name, int return_type, int nb_arg){
       int i;
 
@@ -227,22 +247,26 @@ void add_fun (char * name, int return_type, int nb_arg){
       }
 
       if (nb_funs == FUN_MAX){
-            if (NULL == realloc(funs, FUN_MAX * 2)){
+            if (NULL == realloc(funs, nb_funs_max * 2)){
                   fprintf(stderr, "NO MORE SPACE LEFT\n");
                   exit(EXIT_FAILURE);
             }
-            FUN_MAX *= 2;
+            nb_funs_max *= 2;
       }
 
       strcpy(funs[nb_funs].name, name);
       funs[nb_funs].return_type = return_type;
       funs[nb_funs].num_lab = jump_label ++;
       funs[nb_funs].nb_arg = nb_arg;
-
+	  funs[nb_funs].nb_vars_max = VARS_MAX;
+	  if (!(funs[nb_funs].fun_vars = malloc (VARS_MAX * sizeof (var_sym)))) {
+		fprintf (stderr, "Failed allocation : add_fun");
+	    exit (EXIT_FAILURE);
+	  }
       nb_funs ++;
 }
 
-void add_var_fun (char * name_var, int type_var, int value_var, int position, int num_lab_fun){
+void add_var_fun (char * name, int type_var, int value_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
       
@@ -252,24 +276,25 @@ void add_var_fun (char * name_var, int type_var, int value_var, int position, in
                   nbs_var_fun = funs[j].nb_vars;
 
                   for (i = 0; i < nbs_var_fun; i++){
-                        if (strcmp(name, vars[i].name)){
+                        if (strcmp(name, funs[j].fun_vars[i].name)){
                               fprintf(stderr, "ERROR %s IS ALREADY USED\n", name);
                               exit(EXIT_FAILURE);
                         }
                   } 
-                  if (nbs_var_fun == VARS_MAX){
-                        if (NULL == realloc (vars, VARS_MAX * 2)){
+                  if (nbs_var_fun == funs[j].nb_vars_max){
+                        if (NULL == realloc (funs[j].fun_vars, funs[j].nb_vars_max * 2)){
                               fprintf(stderr, "NO MORE SPACE LEFT\n");
                               exit(EXIT_FAILURE);
                         }
-                        VARS_MAX *= 2;
+                        funs[j].nb_vars_max *= 2;
                   }
-                  strcpy(funs[j].funs_vars[nbs_var_fun].name, name);
-                  funs[j].funs_vars[nbs_var_fun].type = type;
-                  funs[j].funs_vars[nbs_var_fun].value = value;
-                  funs[j].funs_vars[nbs_var_fun].position = position;
+                  strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
+                  funs[j].fun_vars[nbs_var_fun].type = type_var;
+                  funs[j].fun_vars[nbs_var_fun].value = value_var;
+                  funs[j].fun_vars[nbs_var_fun].position = position;
 
                   funs[j].nb_vars ++;
+				  break;
             }
       }
 }
@@ -279,8 +304,8 @@ int search_var_fun (char * name){
 
       for (i = 0; i < nb_funs; i++){
             for (j = 0; j < funs[i].nb_vars; j++){
-                  if (!strcmp(funs[i].var_sym[j].name,name)
-                        return funs[i].var_sym[j].position;
+                  if (!strcmp(funs[i].fun_vars[j].name,name))
+                        return funs[i].fun_vars[j].position;
             }
       }
       fprintf(stderr, "THE VARIABLE %s DOES NOT EXIST\n",name);
@@ -298,7 +323,9 @@ int main(int argc, char** argv) {
     fprintf(stderr,"usage: %s [src]\n",argv[0]);
     return 1;
   }
+  init ();
   yyparse();
   inst("HALT");
+  before_exit ();
   return 0;
 }
