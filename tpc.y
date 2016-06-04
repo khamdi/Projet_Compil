@@ -79,7 +79,7 @@ int convert_type (char * type_name);
 %token <op> ADDSUB DIVSTAR
 %token <bop> COMP BOPE
 
-%type <id>  LValue
+%type <id>  LValue EnTeteFonct
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
 %type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
 
@@ -111,9 +111,9 @@ Declarateur  : IDENT
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
-DeclFonct    : EnTeteFonct Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4);}
-             | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4);};
+DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
+EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4); snprintf ($$, 64, "%s", $2);}
+             | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4); snprintf ($$, 64, "%s", $2);};
 Parametres   : VOID {$$ = 0;}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1;}
