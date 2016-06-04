@@ -1,3 +1,5 @@
 entier main ( void ) {
-	print (5 if (5 < 2) else 8);
+	entier c;
+	c = 5;
+	print (c);
 }
