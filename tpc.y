@@ -81,15 +81,14 @@ int convert_type (char * type_name);
 
 %type <id>  LValue
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
-%type <val> ListTypVar Parametres DeclVars Arguments ListExp Litteral NombreSigne ListConst
-%type <count> Declarateurs Declarateur
+%type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
 
 %left COMP BOPE ADDSUB
 %left unaryOp
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars {jump_label++;} DeclFoncts;
+Prog         : DeclConsts DeclVars DeclFoncts;
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -104,11 +103,11 @@ Litteral     : NombreSigne {$$ = $1;}
              | CARACTERE {$$ = *($1 + 1);};
 NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
-DeclVars     : DeclVars TYPE {/*$4 = convert_type ($2);*/ /* $4 pour Déclarateurs (Héritage) */} Declarateurs PV {$$ = $1 + 1;}
-             | {$$ = 0;};
-Declarateurs : {/*$2 = $$;*/ /* (Héritage) */} Declarateurs VRG {/*$5 = $$;*/ /* (Héritage) */} Declarateur
-             | {/*$2 = $$;*/ /* (Héritage) */} Declarateur;
-Declarateur  : IDENT {add_var_fun($1, $$, count, jump_label); count++; instarg ("ALLOC", 0);}
+DeclVars     : DeclVars TYPE Declarateurs PV
+             | ;
+Declarateurs : Declarateurs VRG Declarateur
+             | Declarateur;
+Declarateur  : IDENT
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;

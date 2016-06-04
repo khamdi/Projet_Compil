@@ -1,4 +1,5 @@
+const c = 5;
+
 entier main ( void ) {
-	const c = 5;
-	print (c);
+	print (6);
 }
