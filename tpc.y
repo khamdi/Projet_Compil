@@ -101,7 +101,7 @@ DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire 
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
 				 $$ = $1 + 1;
-			     printf ("%s\n", $3);
+//			     printf ("%s\n", $3);
                  add_var_fun($3, __CONST__, count, current_label); // $3: Identificateur , $$: Numéro de la constante dans l'ordre d'apparition du programme.
 				 count++;
 				 instarg ("SET", $5); 
