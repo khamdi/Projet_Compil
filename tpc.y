@@ -58,6 +58,7 @@ void add_fun (char * name, int return_type, int nb_arg);
 int convert_type (char * type_name);
 void check_main ();
 int find_fun(char * name);
+int return_nb_args_fun (char * name);
 
 %}
 
@@ -116,17 +117,33 @@ Declarateur  : IDENT
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct    {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ 
-                                    if (!strcmp($1, "main")){
-                                          instarg("ALLOC", funs[0].nb_vars);
-                                          instarg("LABEL", __MAIN_LABEL__); /*Label spéciale pour appelé main facilement*/
-                                    }
                               } Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4); snprintf ($$, 64, "%s", $2);}
-             | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4); snprintf ($$, 64, "%s", $2);};
+EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR 
+                                                {
+                                                      add_fun($2, convert_type($1), $4);
+                                                      instarg("LABEL", funs[nb_funs - 1].num_lab); /*KARIM NEW*/
+                                                      snprintf ($$, 64, "%s", $2);
+                                                }
+             | VOID IDENT LPAR Parametres RPAR 
+                                                {
+                                                      add_fun($2, __VOID__, $4);
+                                                      instarg("LABEL", funs[nb_funs - 1].num_lab); /*KARIM NEW*/
+                                                      snprintf ($$, 64, "%s", $2);
+                                                };
 Parametres   : VOID {$$ = 0;}
              | ListTypVar {$$ = $1;};
-ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1;}
-             | TYPE IDENT {$$ = 1;};
+ListTypVar   : ListTypVar VRG TYPE IDENT 
+                                          {
+                                                $$ = $1 + 1;
+                                                add_var_fun($4, convert_type($3), count, jump_label);
+                                                count++;
+                                          }
+             | TYPE IDENT 
+                              {
+                                    $$ = 1;
+                                    add_var_fun($2, convert_type($1), count, jump_label);
+                                    count++;
+                              };
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
@@ -136,7 +153,17 @@ Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
              | WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr {instarg ("JUMP", $2); instarg ("LABEL", $6);}
              | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
              | RETURN PV {inst ("RETURN");}
-             | IDENT LPAR Arguments RPAR PV {/* Fonctions */}
+             | IDENT LPAR Arguments RPAR PV 
+                                                {
+                                                      if (return_nb_args_fun($1) == $3){
+                                                            instarg("CALL", find_fun($1));
+                                                      }
+                                                      else{
+                                                            fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
+                                                            exit(EXIT_FAILURE);
+                                                      }
+
+                                                }
              | READ LPAR IDENT RPAR PV {inst ("READ"); inst ("PUSH");/* Appel de Read sur Identifiant */}
              | READCH LPAR IDENT RPAR PV {inst ("READCH"); inst ("PUSH");/* Idem avec les caractères */}
              | PRINT LPAR Exp RPAR PV {inst ("POP"); inst ("WRITE"); inst ("PUSH");/* Appel de print sur l'expression */}
@@ -204,7 +231,15 @@ Exp          : Exp ADDSUB Exp {
              | NUM {instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
              | CARACTERE {instarg ("SET", *($1 + 1)); inst ("PUSH");/*$$ = $1;*/}
              | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
-             | IDENT LPAR Arguments RPAR {/* Un appel de fonction */}; 
+             | IDENT LPAR Arguments RPAR  {
+                                                if (return_nb_args_fun($1) == $3){
+                                                            instarg("CALL", find_fun($1));
+                                                }
+                                                else{
+                                                      fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
+                                                      exit(EXIT_FAILURE);
+                                                }
+                                          }; 
 LValue       : IDENT {snprintf ($$, 64, "%s", $1); /*Table des symboles*/}
              | IDENT LSQB Exp RSQB {snprintf ($$, 64, "%s", $1); /* Tableaux : manipulation de l'indice */};
 %%
@@ -258,6 +293,18 @@ int find_fun(char * name){
                   return funs[i].num_lab;
       }
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
+      exit(EXIT_FAILURE);
+}
+
+int return_nb_args_fun (char * name){
+      int i;
+
+      for (i = 0; i < nb_funs; i++){
+            if (!strcmp(funs[i].name, name))
+                  return funs[i].nb_arg;
+      }
+      fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
+      exit(EXIT_FAILURE);
 }
 
 void add_fun (char * name, int return_type, int nb_arg){
@@ -280,12 +327,15 @@ void add_fun (char * name, int return_type, int nb_arg){
 
       strcpy(funs[nb_funs].name, name);
       funs[nb_funs].return_type = return_type;
-      funs[nb_funs].num_lab = jump_label ++;
+      if (!strcmp(name, "main"))
+            funs[nb_funs].num_lab = __MAIN_LABEL__;
+      else
+            funs[nb_funs].num_lab = jump_label ++;
       funs[nb_funs].nb_arg = nb_arg;
-	  funs[nb_funs].nb_vars_max = VARS_MAX;
-	  if (!(funs[nb_funs].fun_vars = malloc (VARS_MAX * sizeof (var_sym)))) {
-		fprintf (stderr, "Failed allocation : add_fun");
-	    exit (EXIT_FAILURE);
+	funs[nb_funs].nb_vars_max = VARS_MAX;
+	if (!(funs[nb_funs].fun_vars = malloc (VARS_MAX * sizeof (var_sym)))) {
+	     fprintf (stderr, "Failed allocation : add_fun");
+	     exit (EXIT_FAILURE);
 	  }
       nb_funs ++;
 }
