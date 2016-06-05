@@ -5,7 +5,9 @@
 
 #define IDENT_MAX	64
 #define VARS_MAX	64
-#define FUN_MAX		64
+#define FUN_MAX	64
+
+#define __MAIN_LABEL__ -1
 
 #define __VOID__ 0
 #define __ENTIER__ 1
@@ -54,6 +56,8 @@ void add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun (char * name);
 void add_fun (char * name, int return_type, int nb_arg);
 int convert_type (char * type_name);
+void check_main ();
+int find_fun(char * name);
 
 %}
 
@@ -88,7 +92,7 @@ int convert_type (char * type_name);
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts;
+Prog         : DeclConsts DeclVars DeclFoncts {check_main();};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -111,7 +115,12 @@ Declarateur  : IDENT
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
-DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
+DeclFonct    : EnTeteFonct    {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ 
+                                    if (!strcmp($1, "main")){
+                                          instarg("ALLOC", funs[0].nb_vars);
+                                          instarg("LABEL", __MAIN_LABEL__); /*Label spéciale pour appelé main facilement*/
+                                    }
+                              } Corps {/*FAIRE LE CORPS*/} ;
 EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4); snprintf ($$, 64, "%s", $2);}
              | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4); snprintf ($$, 64, "%s", $2);};
 Parametres   : VOID {$$ = 0;}
@@ -241,6 +250,16 @@ void before_exit () {
 	free (funs);
 }
 
+int find_fun(char * name){
+      int i;
+
+      for (i = 0; i < nb_funs; i++){
+            if (!strcmp(funs[i].name, name))
+                  return funs[i].num_lab;
+      }
+      fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
+}
+
 void add_fun (char * name, int return_type, int nb_arg){
       int i;
 
@@ -313,6 +332,17 @@ int search_var_fun (char * name){
             }
       }
       fprintf(stderr, "THE VARIABLE %s DOES NOT EXIST\n",name);
+      exit(EXIT_FAILURE);
+}
+
+void check_main (){
+      int i;
+
+      for (i = 0; i < nb_funs; i++)
+            if (!strcmp(funs[i].name, "main"))
+                  return;
+      
+      fprintf(stderr, "NO MAIN FUNCTION\n");
       exit(EXIT_FAILURE);
 }
 
