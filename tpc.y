@@ -121,8 +121,8 @@ Declarateur  : IDENT
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres {funs[nb_funs - 1].nb_arg = $4;} RPAR
-             | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres {funs[nb_funs - 1].nb_arg = $4;} RPAR;
+EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR
+             | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR;
 Parametres   : VOID {$$ = 0;/* Rien à faire pour les arguments */}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_type($3), count, current_label); count++;}
