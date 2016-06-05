@@ -1,16 +1,13 @@
 const c = 5;
 
-void test ( entier x ) {
+void test ( entier x, entier y ) {
 	entier caca, pipi;
-	print (x);
+	print (x - y);
 	return;
 }
 
 entier main ( void ) {
 	entier a;
-	a = 1;
-	print (a);
-	print (c);
-	test (a);
-	return 0;
+	a = 9;
+	test (a, 5);
 }
