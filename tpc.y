@@ -404,12 +404,15 @@ int search_var_fun_in_label (char* name, int label) {
 int search_var_fun (char * name){
       int i, j;
 
-      for (i = 0; i < nb_funs; i++){
-            for (j = 0; j < funs[i].nb_vars; j++){
-                  if (!strcmp(funs[i].fun_vars[j].name,name))
-                        return funs[i].fun_vars[j].position;
-            }
+      for (i = 0; i < funs[jump_label].nb_vars; i++){
+            if (!strcmp(funs[jump_label].fun_vars[i].name,name))
+                  return funs[jump_label].fun_vars[i].position;
       }
+      for (i = 0; i < funs[0].nb_vars; i++){
+            if (!strcmp(funs[0].fun_vars[i].name,name))
+                  return funs[0].fun_vars[i].position;
+      }
+      
       fprintf(stderr, "THE VARIABLE %s DOES NOT EXIST\n",name);
       exit(EXIT_FAILURE);
 }
