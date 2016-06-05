@@ -31,6 +31,8 @@ typedef struct {
       var_sym *fun_vars;
 }fun_sym;
 
+
+
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
@@ -71,6 +73,8 @@ int return_nb_args_fun (char * name);
 	char bop[3];
 	char op;
 	int val;
+
+      char type[64];
 }
 
 %union {
@@ -91,12 +95,14 @@ int return_nb_args_fun (char * name);
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
 %type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
 
+%type <id> Declarateur
+
 %left COMP BOPE ADDSUB
 %left unaryOp
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts {check_main();};
+Prog         : DeclConsts DeclVars DeclFoncts {check_main(); instarg("JUMP", __MAIN_LABEL__);};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -114,15 +120,15 @@ NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
-Declarateurs : Declarateurs VRG Declarateur
-             | Declarateur;
-Declarateur  : IDENT
+Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label);  count++;}
+             | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label);  count++;};
+Declarateur  : IDENT {snprintf ($$, 64, "%s", $1);}
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres {funs[nb_funs - 1].nb_arg = $4;} RPAR
-             | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres {funs[nb_funs - 1].nb_arg = $4;} RPAR;
+EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR
+             | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR;
 Parametres   : VOID {$$ = 0;/* Rien à faire pour les arguments */}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_type($3), count, current_label); count++;}
@@ -359,7 +365,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                   nbs_var_fun = funs[j].nb_vars;
 
                   for (i = 0; i < nbs_var_fun; i++){
-                        if (strcmp(name, funs[j].fun_vars[i].name)){
+                        if (!strcmp(name, funs[j].fun_vars[i].name)){
                               fprintf(stderr, "ERROR %s IS ALREADY USED\n", name);
                               exit(EXIT_FAILURE);
                         }
@@ -371,6 +377,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                         }
                         funs[j].nb_vars_max *= 2;
                   }
+                  fprintf(stderr, "OK\n");
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
@@ -403,7 +410,7 @@ int search_var_fun_in_label (char* name, int label) {
 }
 
 int search_var_fun (char * name){
-      int i, j;
+      int i;
 
       for (i = 0; i < funs[jump_label].nb_vars; i++){
             if (!strcmp(funs[jump_label].fun_vars[i].name,name))
