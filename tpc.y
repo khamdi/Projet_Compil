@@ -125,8 +125,8 @@ EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", 
              | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR;
 Parametres   : VOID {$$ = 0;/* Rien à faire pour les arguments */}
              | ListTypVar {$$ = $1;};
-ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_var_fun ($4, convert_type($3), count, current_label); count++;}
-             | TYPE IDENT {$$ = 1; add_var_fun ($2, convert_type($1), count, current_label); count++;};
+ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_type($3), count, current_label); count++;}
+             | TYPE IDENT {$$ = 1; add_args ($2, convert_type($1), count, current_label); count++;};
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
@@ -142,6 +142,7 @@ Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
                                                             instarg("CALL", find_fun($1));
                                                       }
                                                       else{
+															fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
                                                             fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
                                                             exit(EXIT_FAILURE);
                                                       }
@@ -346,11 +347,6 @@ void add_fun (char * name, int return_type){
       nb_funs ++;
 }
 
-void add_arg (char* name, int type, int position, int num_lab_fun) {
-	int tmp = add_var_fun (name, type, position, num_lab_fun);
-	funs[tmp].nb_arg++;
-}
-
 int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
@@ -385,6 +381,11 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       }
 	fprintf (stderr, "Fonction non trouvée.\n");
 	return -1;
+}
+
+void add_args (char* name, int type, int position, int num_lab_fun) {
+	int tmp = add_var_fun (name, type, position, num_lab_fun);
+	funs[tmp].nb_arg++;
 }
 
 int search_var_fun_in_label (char* name, int label) {

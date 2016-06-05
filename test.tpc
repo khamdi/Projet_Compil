@@ -1,5 +1,9 @@
 const c = 5;
 
+void test ( entier x ) {
+	print (x);
+}
+
 entier main ( void ) {
 	print (c);
 }
