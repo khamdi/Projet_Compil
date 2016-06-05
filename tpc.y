@@ -102,7 +102,7 @@ int return_nb_args_fun (char * name);
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts {check_main(); instarg("JUMP", __MAIN_LABEL__);};
+Prog         : DeclConsts DeclVars {instarg("JUMP", __MAIN_LABEL__);} DeclFoncts {check_main();};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -377,7 +377,6 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                         }
                         funs[j].nb_vars_max *= 2;
                   }
-                  fprintf(stderr, "OK\n");
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
