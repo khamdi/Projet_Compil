@@ -102,7 +102,7 @@ int return_nb_args_fun (char * name);
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts {check_main();};
+Prog         : DeclConsts DeclVars DeclFoncts {check_main(); instarg("JUMP", __MAIN_LABEL__);};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
