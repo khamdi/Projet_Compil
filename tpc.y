@@ -58,9 +58,6 @@ void comment(const char *);
 void init ();
 void before_exit ();
 
-void push (int call);
-void pop ();
-int top ();
 void print_all_var_in_label (int label);
 int add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun_in_label (char* name, int label);
@@ -109,7 +106,7 @@ int return_nb_args_fun (char * name);
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars {instarg ("CALL", __MAIN_LABEL__); push(__MAIN_LABEL__);} DeclFoncts {check_main();};
+Prog         : DeclConsts DeclVars {instarg ("CALL", __MAIN_LABEL__);} DeclFoncts {check_main();};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -181,8 +178,8 @@ Instr        : LValue EGAL Exp PV {
              | IF LPAR Exp IFACTION RPAR Instr {instarg ("LABEL", $4);}
              | IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION {instarg ("LABEL", $4);} Instr {instarg ("LABEL", $8);}
              | WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr {instarg ("JUMP", $2); instarg ("LABEL", $6);}
-             | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN"); pop();}
-             | RETURN PV {inst ("RETURN"); pop();}
+             | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
+             | RETURN PV {inst ("RETURN");}
              | IDENT LPAR Arguments RPAR PV 
                                                 {
                                                       if (return_nb_args_fun($1) == $3){
@@ -283,8 +280,7 @@ Exp          : Exp ADDSUB Exp {
              | IDENT LPAR Arguments RPAR  {
                                                 if (return_nb_args_fun($1) == $3){
 													int x = find_fun ($1);
-                                                    instarg("CALL", x);
-													push (x);		
+                                                    instarg("CALL", x);		
                                                 }
                                                 else{
                                                       fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
@@ -331,24 +327,6 @@ void init () {
 		fprintf (stderr, "Failed allocation : init\n");
 		exit (EXIT_FAILURE);
 	}
-}
-
-void push (int call) {
-	index_current_call++;
-	if (max_calls >= index_current_call) {
-		int* tmp;
-		tmp = realloc (call_stack, max_calls * 2);
-		call_stack = tmp;
-	}
-	call_stack[index_current_call] = call;
-}
-
-void pop () {
-	index_current_call--;
-}
-
-int top () {
-	return call_stack[index_current_call];
 }
 
 void before_exit () {
