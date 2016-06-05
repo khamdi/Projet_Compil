@@ -41,7 +41,7 @@ FILE* yyin;
 int top_stack_position = 0;
 
 int count = 0;
-int jump_label = 1;
+int jump_label = 0;
 int current_label = 0;
 int size_fun_sym = 0;
 int nb_funs = 0;
@@ -118,8 +118,8 @@ Litteral     : NombreSigne {$$ = $1;}
              | CARACTERE {$$ = *($1 + 1);};
 NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
-DeclVars     : DeclVars TYPE Declarateurs PV
-             | ;
+DeclVars     : DeclVars TYPE Declarateurs PV {count = 0;}
+             |  {count = 0;};
 Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label);  count++;}
              | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label);  count++;};
 Declarateur  : IDENT {snprintf ($$, 64, "%s", $1);}
@@ -219,7 +219,7 @@ Exp          : Exp ADDSUB Exp {
              | LPAR Exp RPAR {/*Rien à faire*/}
              | LValue {
 					int x;
-					if (-1 == (x = search_var_fun_in_label ($1, current_label))) { /* Local function */
+					if (-1 == (x = search_var_fun_in_label ($1, current_label))) { /* Local function */                                    
 						if (-1 == (x = search_var_fun_in_label ($1, 1))) {
 							fprintf (stderr, "VARIABLE %s DOES NOT EXIST", $1);
 						}
@@ -398,12 +398,13 @@ int search_var_fun_in_label (char* name, int label) {
 	int i, j;
 
       for (i = 0; i < nb_funs; i++){
-			if (label == funs[i].num_lab) {
+		if (label == funs[i].num_lab) {
 	            for (j = 0; j < funs[i].nb_vars; j++){
-	            	if (!strcmp(funs[i].fun_vars[j].name,name))
-                    	return funs[i].fun_vars[j].position;
+	            	if (!strcmp(funs[i].fun_vars[j].name,name)){
+                    	     return funs[i].fun_vars[j].position;
+                        }
 	            }
-			}
+		}
       }
 	return -1;
 }
