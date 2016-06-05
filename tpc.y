@@ -38,6 +38,7 @@ int top_stack_position = 0;
 
 int count = 0;
 int jump_label = 0;
+int current_label = 0;
 int size_fun_sym = 0;
 int nb_funs = 0;
 int nb_funs_max = FUN_MAX;
@@ -79,7 +80,7 @@ int convert_type (char * type_name);
 %token <op> ADDSUB DIVSTAR
 %token <bop> COMP BOPE
 
-%type <id>  LValue EnTeteFonct
+%type <id>  LValue
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
 %type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
 
@@ -93,12 +94,13 @@ DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire 
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
 				 $$ = $1 + 1;
-                 add_var_fun($3, __CONST__, count, jump_label); // $3: Identificateur , $$: Numéro de la constante dans l'ordre d'apparition du programme.
+			     printf ("%s\n", $3);
+                 add_var_fun($3, __CONST__, count, current_label); // $3: Identificateur , $$: Numéro de la constante dans l'ordre d'apparition du programme.
 				 count++;
 				 instarg ("SET", $5); 
                  inst ("PUSH"); 
                }
-             | IDENT EGAL Litteral {add_var_fun($1, __CONST__, count, jump_label); count++; instarg ("SET", $3); inst ("PUSH");};
+             | IDENT EGAL Litteral {add_var_fun($1, __CONST__, count, current_label); count++; instarg ("SET", $3); inst ("PUSH");};
 Litteral     : NombreSigne {$$ = $1;}
              | CARACTERE {$$ = *($1 + 1);};
 NombreSigne  : NUM {$$ = $1;}
@@ -112,12 +114,12 @@ Declarateur  : IDENT
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR Parametres RPAR {add_fun($2, convert_type($1), $4); snprintf ($$, 64, "%s", $2);}
-             | VOID IDENT LPAR Parametres RPAR {add_fun($2, __VOID__, $4); snprintf ($$, 64, "%s", $2);};
-Parametres   : VOID {$$ = 0;}
-             | ListTypVar {$$ = $1;};
-ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1;}
-             | TYPE IDENT {$$ = 1;};
+EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1), 0); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR
+             | VOID IDENT LPAR {add_fun($2, __VOID__, 0); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR;
+Parametres   : VOID {/*$$ = 0;*//* Rien à faire pour les arguments */}
+             | ListTypVar {/*$$ = $1;*/};
+ListTypVar   : ListTypVar VRG TYPE IDENT {/*$$ = $1 + 1;*/ add_var_fun ($4, convert_type($3), count++, current_label);}
+             | TYPE IDENT {/*$$ = 1;*/add_var_fun ($2, convert_type($1), count++, current_label);};
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
@@ -230,6 +232,7 @@ void init () {
 		fprintf (stderr, "Failed allocation : init\n");
 		exit (EXIT_FAILURE);
 	}
+	add_fun ("__INIT__", 0, 0);
 }
 
 void before_exit () {
@@ -261,13 +264,17 @@ void add_fun (char * name, int return_type, int nb_arg){
 
       strcpy(funs[nb_funs].name, name);
       funs[nb_funs].return_type = return_type;
-      funs[nb_funs].num_lab = jump_label ++;
+	  current_label = jump_label;
+	fprintf (stderr, "Addfun:%d\n", current_label);
+      funs[nb_funs].num_lab = current_label;
+	  jump_label++;
       funs[nb_funs].nb_arg = nb_arg;
 	  funs[nb_funs].nb_vars_max = VARS_MAX;
 	  if (!(funs[nb_funs].fun_vars = malloc (VARS_MAX * sizeof (var_sym)))) {
 		fprintf (stderr, "Failed allocation : add_fun");
 	    exit (EXIT_FAILURE);
 	  }
+
       nb_funs ++;
 }
 
@@ -275,7 +282,9 @@ void add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
       
-      for (j = 0; j < size_fun_sym; j++) {
+	fprintf (stderr, "Addvar %s in : %d\n", name, num_lab_fun);
+
+      for (j = 0; j < nb_funs; j++) {
             if (funs[j].num_lab == num_lab_fun){
                   
                   nbs_var_fun = funs[j].nb_vars;
@@ -298,9 +307,10 @@ void add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                   funs[j].fun_vars[nbs_var_fun].position = position;
 
                   funs[j].nb_vars ++;
-				  break;
+				  return;
             }
       }
+	fprintf (stderr, "Fonction non trouvée.\n");
 }
 
 int search_var_fun (char * name){

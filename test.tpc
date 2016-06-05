@@ -1,5 +1,5 @@
 const c = 5;
 
 entier main ( void ) {
-	print (6);
+	print (c);
 }
