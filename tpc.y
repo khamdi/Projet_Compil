@@ -31,8 +31,6 @@ typedef struct {
       var_sym *fun_vars;
 }fun_sym;
 
-
-
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
@@ -43,6 +41,11 @@ int top_stack_position = 0;
 int count = 0;
 int jump_label = 1;
 int current_label = 0;
+
+int* call_stack = NULL;
+int index_current_call = -1;
+int max_calls = BUFSIZ;
+
 int size_fun_sym = 0;
 int nb_funs = 0;
 int nb_funs_max = FUN_MAX;
@@ -55,6 +58,10 @@ void comment(const char *);
 void init ();
 void before_exit ();
 
+void push (int call);
+void pop ();
+int top ();
+void print_all_var_in_label (int label);
 int add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun_in_label (char* name, int label);
 int search_var_fun (char * name);
@@ -102,7 +109,7 @@ int return_nb_args_fun (char * name);
 %right EGAL
 
 %%
-Prog         : DeclConsts DeclVars DeclFoncts {check_main(); instarg("JUMP", __MAIN_LABEL__);};
+Prog         : DeclConsts DeclVars {instarg ("CALL", __MAIN_LABEL__); push(__MAIN_LABEL__);} DeclFoncts {check_main();};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
              | ;
 ListConst    : ListConst VRG IDENT EGAL Litteral {
@@ -120,15 +127,31 @@ NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
-Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label);  count++;}
-             | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label);  count++;};
+Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label); instarg ("ALLOC", 1);  count++;}
+             | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label); instarg ("ALLOC", 1);  count++;};
 Declarateur  : IDENT {snprintf ($$, 64, "%s", $1);}
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
-EnTeteFonct  : TYPE IDENT LPAR {add_fun($2, convert_type($1)); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR
-             | VOID IDENT LPAR {add_fun($2, __VOID__); instarg("LABEL", current_label); /*snprintf ($$, 64, "%s", $2);*/ count = 0;} Parametres RPAR;
+EnTeteFonct  : TYPE IDENT LPAR {
+					add_fun($2, convert_type($1));
+					instarg("LABEL", current_label);
+					count = 0;
+				} Parametres {
+					int i;
+					for (i = 0 ; i < funs[nb_funs - 1].nb_arg ; i++)
+						funs[nb_funs - 1].fun_vars[i].position -= funs[nb_funs - 1].nb_arg + 2;
+				} RPAR
+             | VOID IDENT LPAR {
+					add_fun($2, __VOID__);
+					instarg("LABEL", current_label);
+					count = 0;
+				} Parametres {
+					int i;
+					for (i = 0 ; i < funs[nb_funs - 1].nb_arg ; i++)
+						funs[nb_funs - 1].fun_vars[i].position -= funs[nb_funs - 1].nb_arg + 2;
+				} RPAR;
 Parametres   : VOID {$$ = 0;/* Rien à faire pour les arguments */}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_type($3), count, current_label); count++;}
@@ -136,12 +159,30 @@ ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_typ
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
-Instr        : LValue EGAL Exp PV {/*$1 = $3;*/}
+Instr        : LValue EGAL Exp PV {
+					int x;
+					inst ("POP");
+					inst ("SWAP");
+					if (-999 == (x = search_var_fun_in_label ($1, current_label))) {
+						if (-999 == (x = search_var_fun_in_label ($1, 1))) {
+							fprintf (stderr, "The variable %s was not declared.\n", $1);
+							exit (EXIT_FAILURE);
+						}
+						instarg ("SET", x);
+						inst ("SWAP");
+						inst ("SAVE");
+					}
+					else {
+						instarg ("SET", x);
+						inst ("SWAP");
+						inst ("SAVER");
+					}
+					/*$1 = $3;*/}
              | IF LPAR Exp IFACTION RPAR Instr {instarg ("LABEL", $4);}
              | IF LPAR Exp IFACTION RPAR Instr ELSE ELSEACTION {instarg ("LABEL", $4);} Instr {instarg ("LABEL", $8);}
              | WHILE WHILELABEL LPAR Exp RPAR WHILECOMP Instr {instarg ("JUMP", $2); instarg ("LABEL", $6);}
-             | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN");}
-             | RETURN PV {inst ("RETURN");}
+             | RETURN Exp PV {/* Empiler la valeur sur la pile */inst ("POP"); inst("RETURN"); pop();}
+             | RETURN PV {inst ("RETURN"); pop();}
              | IDENT LPAR Arguments RPAR PV 
                                                 {
                                                       if (return_nb_args_fun($1) == $3){
@@ -219,15 +260,18 @@ Exp          : Exp ADDSUB Exp {
              | LPAR Exp RPAR {/*Rien à faire*/}
              | LValue {
 					int x;
-					if (-1 == (x = search_var_fun_in_label ($1, current_label))) { /* Local function */
-						if (-1 == (x = search_var_fun_in_label ($1, 1))) {
-							fprintf (stderr, "VARIABLE %s DOES NOT EXIST", $1);
+					if (-999 == (x = search_var_fun_in_label ($1, current_label))) { /* Local function */
+						if (-999 == (x = search_var_fun_in_label ($1, 1))) {
+							fprintf (stderr, "VARIABLE %s DOES NOT EXIST IN %d\n", $1, current_label);
+							print_all_var_in_label (current_label);
+							exit (EXIT_FAILURE);
 						}
 						instarg ("SET", x);
 						inst ("LOAD");
 					}
 					else {
 						instarg ("SET", x);
+						fprintf (stderr, "%s: %d\n",$1, x);
 						inst ("LOADR");
 					}
 					inst ("PUSH");
@@ -238,7 +282,9 @@ Exp          : Exp ADDSUB Exp {
              | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR  {
                                                 if (return_nb_args_fun($1) == $3){
-                                                            instarg("CALL", find_fun($1));
+													int x = find_fun ($1);
+                                                    instarg("CALL", x);
+													push (x);		
                                                 }
                                                 else{
                                                       fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
@@ -280,6 +326,29 @@ void init () {
 		exit (EXIT_FAILURE);
 	}
 	add_fun ("__INIT__", 0);
+
+	if (!(call_stack = malloc (BUFSIZ * sizeof (int)))) {
+		fprintf (stderr, "Failed allocation : init\n");
+		exit (EXIT_FAILURE);
+	}
+}
+
+void push (int call) {
+	index_current_call++;
+	if (max_calls >= index_current_call) {
+		int* tmp;
+		tmp = realloc (call_stack, max_calls * 2);
+		call_stack = tmp;
+	}
+	call_stack[index_current_call] = call;
+}
+
+void pop () {
+	index_current_call--;
+}
+
+int top () {
+	return call_stack[index_current_call];
 }
 
 void before_exit () {
@@ -336,13 +405,12 @@ void add_fun (char * name, int return_type){
 
       if (!strcmp(name, "main")) {
 		  current_label = __MAIN_LABEL__;
-          funs[nb_funs].num_lab = __MAIN_LABEL__;
 	  }
       else {
 		  current_label = jump_label;
-	      funs[nb_funs].num_lab = current_label;
 		  jump_label++;
 	  }
+	  funs[nb_funs].num_lab = current_label;
       funs[nb_funs].nb_arg = 0;
 	  funs[nb_funs].nb_vars_max = VARS_MAX;
 	  if (!(funs[nb_funs].fun_vars = malloc (VARS_MAX * sizeof (var_sym)))) {
@@ -377,7 +445,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                         }
                         funs[j].nb_vars_max *= 2;
                   }
-                  fprintf(stderr, "OK\n");
+           //       fprintf(stderr, "OK\n");
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
@@ -388,6 +456,18 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       }
 	fprintf (stderr, "Fonction non trouvée.\n");
 	return -1;
+}
+
+void print_all_var_in_label (int label) {
+	int i, j;
+	for (i = 0 ; i < nb_funs ; i++) {
+		if (label == funs[i].num_lab) {
+			for (j = 0 ; j < funs[i].nb_vars ; j++) {
+				fprintf (stderr, "%s\n", funs[i].fun_vars[j].name);
+			}
+			return;
+		}
+	}
 }
 
 void add_args (char* name, int type, int position, int num_lab_fun) {
@@ -406,7 +486,7 @@ int search_var_fun_in_label (char* name, int label) {
 	            }
 			}
       }
-	return -1;
+	return -999;
 }
 
 int search_var_fun (char * name){
