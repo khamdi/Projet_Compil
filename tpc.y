@@ -31,6 +31,8 @@ typedef struct {
       var_sym *fun_vars;
 }fun_sym;
 
+
+
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
@@ -71,6 +73,8 @@ int return_nb_args_fun (char * name);
 	char bop[3];
 	char op;
 	int val;
+
+      char type[64];
 }
 
 %union {
@@ -90,6 +94,8 @@ int return_nb_args_fun (char * name);
 %type <id>  LValue
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
 %type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
+
+%type <id> Declarateur
 
 %left COMP BOPE ADDSUB
 %left unaryOp
@@ -114,9 +120,9 @@ NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
 DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
-Declarateurs : Declarateurs VRG Declarateur
-             | Declarateur;
-Declarateur  : IDENT
+Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label);  count++;}
+             | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label);  count++;};
+Declarateur  : IDENT {snprintf ($$, 64, "%s", $1);}
              | IDENT LSQB NUM RSQB ;
 DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
@@ -359,7 +365,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                   nbs_var_fun = funs[j].nb_vars;
 
                   for (i = 0; i < nbs_var_fun; i++){
-                        if (strcmp(name, funs[j].fun_vars[i].name)){
+                        if (!strcmp(name, funs[j].fun_vars[i].name)){
                               fprintf(stderr, "ERROR %s IS ALREADY USED\n", name);
                               exit(EXIT_FAILURE);
                         }
@@ -371,6 +377,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                         }
                         funs[j].nb_vars_max *= 2;
                   }
+                  fprintf(stderr, "OK\n");
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
@@ -403,7 +410,7 @@ int search_var_fun_in_label (char* name, int label) {
 }
 
 int search_var_fun (char * name){
-      int i, j;
+      int i;
 
       for (i = 0; i < funs[jump_label].nb_vars; i++){
             if (!strcmp(funs[jump_label].fun_vars[i].name,name))

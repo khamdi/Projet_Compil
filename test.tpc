@@ -1,6 +1,7 @@
 const c = 5;
 
 void test ( entier x ) {
+	entier caca, pipi;
 	print (x);
 }
 
