@@ -423,7 +423,6 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                         }
                         funs[j].nb_vars_max *= 2;
                   }
-           //       fprintf(stderr, "OK\n");
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
