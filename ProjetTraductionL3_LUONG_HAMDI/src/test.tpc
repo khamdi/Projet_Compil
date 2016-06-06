@@ -1,0 +1,19 @@
+const c = 5;
+
+void test(caractere b){
+	print(b);
+	return;
+}
+
+entier fact (entier x){
+	if (x == 0){
+		return 1;
+	}
+	return (x * fact (x -1));
+}
+
+entier main ( void ) {
+	entier a;
+	a = 5;
+	print (fact(a));
+}
