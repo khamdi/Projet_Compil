@@ -2,6 +2,7 @@ entier x;
 
 void a (void) {
 	print (1);
+	return;
 }
 
 entier factorielle (entier x) {
@@ -12,5 +13,5 @@ entier factorielle (entier x) {
 }
 
 void main (void) {
-	print (factorielle (6));
+	print (factorielle (5));
 }

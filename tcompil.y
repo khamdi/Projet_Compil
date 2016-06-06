@@ -280,7 +280,7 @@ Exp          : Exp ADDSUB Exp {
                                                 if (return_nb_args_fun($1) == $3){
                                                     instarg("CALL", find_fun ($1));
 													fprintf (stderr, "Fact: ");
-													inst ("WRITE");
+												//	inst ("WRITE");
 													if (__VOID__ != return_type_fun ($1)) inst ("PUSH");	
                                                 }
                                                 else{
