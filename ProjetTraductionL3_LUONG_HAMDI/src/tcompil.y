@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 #define IDENT_MAX	64
 #define VARS_MAX	64
@@ -46,10 +42,6 @@ int count = 0;
 int jump_label = 0;
 int current_label = 0;
 
-int* call_stack = NULL;
-int index_current_call = -1;
-int max_calls = BUFSIZ;
-
 int size_fun_sym = 0;
 int nb_funs = 0;
 int nb_funs_max = FUN_MAX;
@@ -62,6 +54,7 @@ void comment(const char *);
 void init ();
 void before_exit ();
 
+int return_type_fun (char* name);
 void print_all_var_in_label (int label);
 int add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun_in_label (char* name, int label);
@@ -121,7 +114,7 @@ ListConst    : ListConst VRG IDENT EGAL Litteral {
 				 instarg ("SET", $5); 
                  inst ("PUSH"); 
                }
-             | IDENT EGAL Litteral { add_var_fun($1, __CONST__, count, current_label); count++; instarg ("SET", $3); inst ("PUSH");};
+             | IDENT EGAL Litteral {add_var_fun($1, __CONST__, count, current_label); count++; instarg ("SET", $3); inst ("PUSH");};
 Litteral     : NombreSigne {$$ = $1;}
              | CARACTERE {$$ = *($1 + 1);};
 NombreSigne  : NUM {$$ = $1;}
@@ -188,9 +181,10 @@ Instr        : LValue EGAL Exp PV {
                                                 {
                                                       if (return_nb_args_fun($1) == $3){
                                                             instarg("CALL", find_fun($1));
+															if (__VOID__ != return_type_fun ($1)) inst ("PUSH");
                                                       }
                                                       else{
-										fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
+															fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
                                                             fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
                                                             exit(EXIT_FAILURE);
                                                       }
@@ -273,6 +267,7 @@ Exp          : Exp ADDSUB Exp {
 					}
 					else {
 						instarg ("SET", x);
+						fprintf (stderr, "%s: %d\n",$1, x);
 						inst ("LOADR");
 					}
 					inst ("PUSH");
@@ -283,8 +278,10 @@ Exp          : Exp ADDSUB Exp {
              | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR  {
                                                 if (return_nb_args_fun($1) == $3){
-									int x = find_fun ($1);
-                                                      instarg("CALL", x);
+                                                    instarg("CALL", find_fun ($1));
+													fprintf (stderr, "Fact: ");
+													inst ("WRITE");
+													if (__VOID__ != return_type_fun ($1)) inst ("PUSH");	
                                                 }
                                                 else{
                                                       fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
@@ -326,11 +323,6 @@ void init () {
 		exit (EXIT_FAILURE);
 	}
 	add_fun ("__INIT__", 0);
-
-	if (!(call_stack = malloc (BUFSIZ * sizeof (int)))) {
-		fprintf (stderr, "Failed allocation : init\n");
-		exit (EXIT_FAILURE);
-	}
 }
 
 void before_exit () {
@@ -348,6 +340,17 @@ int find_fun(char * name){
       for (i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name))
                   return funs[i].num_lab;
+      }
+      fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
+      exit(EXIT_FAILURE);
+}
+
+int return_type_fun (char* name) {
+      int i;
+
+      for (i = 0; i < nb_funs; i++){
+            if (!strcmp(funs[i].name, name))
+                  return funs[i].return_type;
       }
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
       exit(EXIT_FAILURE);
@@ -407,6 +410,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
       
+	fprintf (stderr, "Addvar %s in : %d\n", name, num_lab_fun);
 
       for (j = 0; j < nb_funs; j++) {
             if (funs[j].num_lab == num_lab_fun){
@@ -498,36 +502,19 @@ void check_main (){
 }
 
 int main(int argc, char** argv) {
-      int fd;
-      char * buff;
-      if(argc >= 2){
-            if ( NULL == ( yyin = fopen(argv[1],"r") )){
-                  perror("fopen");
-                  exit(EXIT_FAILURE);
-            }
-            if(argc == 3 && !strcmp( argv[2], "-o") ){
-
-                  buff = strcat( strsep(&argv[1] , "."), ".vm");
-                   if ((fd = open(buff, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
-                        perror("open");
-                        exit(EXIT_FAILURE);
-                    }
-                  if (dup2(fd, 1) == -1) {
-                        perror("dup2");
-                        exit(EXIT_FAILURE);
-                  }
-            }
-      }
-      else if(argc==1){
-            yyin = stdin;
-      }
-      else{
-            fprintf(stderr,"usage: %s [src]\n",argv[0]);
-            return 1;
-      }
-      init ();
-      yyparse();
-      inst("HALT");
-      before_exit ();
-      return 0;
+  if(argc==2){
+    yyin = fopen(argv[1],"r");
+  }
+  else if(argc==1){
+    yyin = stdin;
+  }
+  else{
+    fprintf(stderr,"usage: %s [src]\n",argv[0]);
+    return 1;
+  }
+  init ();
+  yyparse();
+  inst("HALT");
+  before_exit ();
+  return 0;
 }
