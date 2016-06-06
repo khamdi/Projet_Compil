@@ -1,23 +1,24 @@
 Auteurs: HAMDI Karim, LUONG Guy.
 
 
-Pour compiler et obtenir l'executable tcompil, se placer dans le repertoire faire make
+Pour compiler et obtenir l'exécutable tcompil :
+* 	se placer dans le répertoire /src
+* 	utiliser la commande make
 
-Pour analyser un fichier de type .tpc -> ./tcompil nomdufichier.tpc
-	Les instructions en machine virtuelle sortent alors sur la sortie standard.
+Pour traduire un fichier tpc en instructions en machine virtuelle MLV : .tpc -> ./tcompil nomdufichier.tpc
+*	Les instructions en machine virtuelle sortent alors sur la sortie standard.
 
-Pour obtenir un nomdufichier.vm contenant les instructions en machine virtuelle il faut utiliser l'option -o:
-	./tcompil nomdufichier.tpc -o
+Pour obtenir un nomdufichier.vm contenant les instructions en machine virtuelle, il faut utiliser l'option -o:
+*	./tcompil nomdufichier.tpc -o
 
-Pour faire executer les instructions par la machine virtuelle il faut utiliser un pipe.
-	./tcompil nomdufichier.tpc | ./vmAMD64
+Pour faire exécuter les instructions par la machine virtuelle il faut utiliser un pipe.
+*		./tcompil nomdufichier.tpc | ./vmAMD64
+* OU 	cat nomdufichier.vm | ./vmAMD64
 
-tcompil.lex est l'analyseur syntaxique écrit en flex
+- tcompil.lex est l'analyseur lexical écrit en flex
+- tcompil.y est l'analyseur syntaxique écrit en bison
+- tcompil.output contient les informations relatives à l'analyse syntaxique, l'automate de l'analyse LR(0), la grammaire...
 
-tcompil.y est l'analyseur syntaxique écrit en bison
-
-tcompil.output contient les informations relatives au bison, c'est le résultat du bison en mode verbeux.
-
-Il manque la gestion des tableaux.
+Voir dans rapport.pdf, la section sur "Ce qui est possible" et "Problèmes".
 
 Ce projet a été réalisé en étroite collaboration avec le binôme ANTEUR-FERNANDES

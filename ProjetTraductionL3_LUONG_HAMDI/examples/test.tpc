@@ -1,0 +1,21 @@
+const a = 5;
+
+entier x;
+
+void test(void){
+	return;
+}
+
+entier fact (entier x){
+	if (x <= 1){
+		return 1;
+	}
+	return (x * fact (x -1));
+}
+
+void main ( void ) {
+	x = 5;
+	print (fact(a));
+	print (fact(x));
+	return;
+}

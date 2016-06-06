@@ -6,20 +6,26 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+
 #define IDENT_MAX	64
 #define VARS_MAX	64
 #define FUN_MAX	64
+
 #define __MAIN_LABEL__ 0
+
 #define __VOID__ 0
 #define __ENTIER__ 1
 #define __CHAR__ 2
 #define __CONST__ 3
+
 typedef struct {
       char name[IDENT_MAX];
       int type;
       int size;
       int position;
 }var_sym;
+
 typedef struct {
       char name[IDENT_MAX];
       int return_type;
@@ -29,23 +35,30 @@ typedef struct {
       int nb_vars;
       var_sym *fun_vars;
 }fun_sym;
+
 int yyerror(char*);
 int yylex();
 FILE* yyin; 
 /*int yylval;*/
+
 int top_stack_position = 0;
+
 int count = 0;
-int jump_label = 0;
+int jump_label = 1;
 int current_label = 0;
+
 int size_fun_sym = 0;
 int nb_funs = 0;
 int nb_funs_max = FUN_MAX;
 fun_sym* funs = NULL;
+
 void inst(const char *);
 void instarg(const char *,int);
 void comment(const char *);
+
 void init ();
 void before_exit ();
+
 int return_type_fun (char* name);
 void print_all_var_in_label (int label);
 int add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
@@ -57,18 +70,25 @@ int convert_type (char * type_name);
 void check_main ();
 int find_fun(char * name);
 int return_nb_args_fun (char * name);
+int get_exp_type(int a, int b);
+int get_lvalue_type (char * name);
+
 %}
+
 %union {
 	char id[64];
 	char character[4];
 	char bop[3];
 	char op;
 	int val;
-      char type[64];
+
 }
+
 %union {
 	int count;
+      int type;
 }
+
 %token EGAL PV VRG LPAR RPAR LCUR RCUR LSQB RSQB
 %token <id> IDENT
 %token IF ELSE WHILE RETURN PRINT READ READCH CONST
@@ -78,13 +98,18 @@ int return_nb_args_fun (char * name);
 %token <character> CARACTERE
 %token <op> ADDSUB DIVSTAR
 %token <bop> COMP BOPE
+
 %type <id>  LValue
+%type <type> Exp;
 %type <val> IFACTION ELSEACTION WHILELABEL WHILECOMP
 %type <val> ListTypVar Parametres Arguments ListExp Litteral NombreSigne ListConst
+
 %type <id> Declarateur
+
 %left COMP BOPE ADDSUB
 %left unaryOp
 %right EGAL
+
 %%
 Prog         : DeclConsts DeclVars {instarg ("CALL", __MAIN_LABEL__); inst ("HALT");} DeclFoncts {check_main();};
 DeclConsts   : DeclConsts CONST ListConst PV {/* Table des symboles nécessaire */}
@@ -171,10 +196,11 @@ Instr        : LValue EGAL Exp PV {
                                                             fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
                                                             exit(EXIT_FAILURE);
                                                       }
+
                                                 }
              | READ LPAR IDENT RPAR PV {inst ("READ"); inst ("PUSH");/* Appel de Read sur Identifiant */}
              | READCH LPAR IDENT RPAR PV {inst ("READCH"); inst ("PUSH");/* Idem avec les caractères */}
-             | PRINT LPAR Exp RPAR PV {inst ("POP"); inst ("WRITE"); inst ("PUSH");/* Appel de print sur l'expression */}
+             | PRINT LPAR Exp RPAR PV {inst ("POP"); if ($3 == __ENTIER__) inst ("WRITE"); else inst("WRITECH"); inst ("PUSH");/* Appel de print sur l'expression */}
              | PV
              | Bloc ;
 IFACTION	 : {instarg ("JUMPF", $$=jump_label++);};
@@ -187,6 +213,8 @@ Arguments    : ListExp {$$ = $1;/* Count args : $1 */}
 ListExp      : ListExp VRG Exp {$$ = $1 + 1;}
              | Exp {$$ = 1;};
 Exp          : Exp ADDSUB Exp {
+                        $$ = get_exp_type($1, $3);
+
 				inst("POP");
 				inst("SWAP");
 				inst ("POP");
@@ -196,6 +224,8 @@ Exp          : Exp ADDSUB Exp {
 					inst ("SUB");
 				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
              | Exp DIVSTAR Exp {
+                        $$ = get_exp_type($1, $3);
+
 				inst("POP");
 				inst("SWAP");
 				inst ("POP");
@@ -206,6 +236,7 @@ Exp          : Exp ADDSUB Exp {
 				}
 				inst ("PUSH"); /*$$ = ($2 == '+') ? $1 + $3 : $1 - $3;*/}
              | Exp COMP Exp {
+                              $$ = __ENTIER__;
 					inst ("POP");
 					inst ("SWAP");
 					inst ("POP");
@@ -224,19 +255,22 @@ Exp          : Exp ADDSUB Exp {
 					}
 					inst ("PUSH");
 				}
-			 | Exp BOPE Exp {
-					inst ("POP"); inst ("SWAP"); inst ("POP");
-					switch (*$2) {
-						case '|':	instarg ("JUMPF", jump_label++);  break;
-						case '&':	inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); break;
-					}
-					inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("SWAP"); inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);
+		 | Exp BOPE Exp {
+                        $$ = __ENTIER__;
+				inst ("POP"); inst ("SWAP"); inst ("POP");
+				switch (*$2) {
+					case '|':	instarg ("JUMPF", jump_label++);  break;
+					case '&':	inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); break;
 				}
-             | ADDSUB Exp %prec unaryOp {if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
-             | NEGATION Exp {inst ("POP"); inst ("NEG"); inst ("PUSH");}
-             | LPAR Exp RPAR {/*Rien à faire*/}
+				inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("SWAP"); inst ("NEG"); inst ("NEG"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);
+			}
+             | ADDSUB Exp %prec unaryOp {if ($2 == __CHAR__) {fprintf(stderr, "Add/Sub on a character is completely bullshit\n"); exit(EXIT_FAILURE);} if ($1 == '-') {inst ("POP"); inst ("SWAP"); inst ("PUSH"); instarg ("SET", 0); inst ("SUB"); inst ("SWAP"); inst ("POP"); inst ("SWAP"); inst ("PUSH");}}
+             | NEGATION Exp {if ($2 == __CHAR__) {fprintf(stderr, "Neg on a character is completely bullshit\n"); exit(EXIT_FAILURE);}inst ("POP"); inst ("NEG"); inst ("PUSH");}
+             | LPAR Exp RPAR {$$ = $2;}
              | LValue {
+                              $$ = get_lvalue_type ($1);
 					int x;
+
 					if (-999 == (x = search_var_fun_in_label ($1, current_label))) { /* Local function */
 						if (-999 == (x = search_var_fun_in_label ($1, 1))) {
 							fprintf (stderr, "VARIABLE %s DOES NOT EXIST IN %d\n", $1, current_label);
@@ -253,14 +287,21 @@ Exp          : Exp ADDSUB Exp {
 					inst ("PUSH");
 					/*Table des symboles : LOADR*/
 				}
-             | NUM {instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
-             | CARACTERE {instarg ("SET", *($1 + 1)); inst ("PUSH");/*$$ = $1;*/}
-             | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
+             | NUM { $$ = __ENTIER__; instarg ("SET", $1); inst ("PUSH"); /*$$ = $1;*/}
+             | CARACTERE { $$ = __CHAR__; instarg ("SET", *($1 + 1)); inst ("PUSH");/*$$ = $1;*/}
+             | Exp IF LPAR Exp RPAR ELSE Exp {if ($1 != $7) {yyerror("Cannot find the type of the expression"); exit(EXIT_FAILURE);} $$ = $7; inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR  {
                                                 if (return_nb_args_fun($1) == $3){
                                                     instarg("CALL", find_fun ($1));
+													/*fprintf (stderr, "Fact: ");
+													inst ("WRITE");*/
 													instarg("FREE", $3);
-													if (__VOID__ != return_type_fun ($1)) inst ("PUSH");	
+													if (__VOID__ != ($$ = return_type_fun ($1))) inst ("PUSH");	
+                                                                              else{
+                                                                                    yyerror("void value not ignored as it ought to be");
+                                                                                    exit(EXIT_FAILURE);
+                                                                              }
+
                                                 }
                                                 else{
                                                       fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
@@ -270,19 +311,53 @@ Exp          : Exp ADDSUB Exp {
 LValue       : IDENT {snprintf ($$, 64, "%s", $1); /*Table des symboles*/}
              | IDENT LSQB Exp RSQB {snprintf ($$, 64, "%s", $1); /* Tableaux : manipulation de l'indice */};
 %%
+
 int yyerror(char* s) {
   fprintf(stderr,"%s\n",s);
   return 0;
 }
+
 void inst(const char *s){
   printf("%s\n",s);
 }
+
 void instarg(const char *s,int n){
   printf("%s\t%d\n",s,n);
 }
+
 void comment(const char *s){
   printf("#%s\n",s);
 }
+
+int get_exp_type(int a, int b){
+      if (a == __ENTIER__ || b == __ENTIER__ )
+            return __ENTIER__;
+      return __CHAR__;
+}
+
+int get_lvalue_type (char * name){
+      int i, tmp;
+
+	  for (i = 0; i < nb_funs ; i++) {
+	  		if (funs[i].num_lab == current_label) {
+				tmp = i;
+				break;
+			}
+	  }
+      for (i = 0; i < funs[tmp].nb_vars; i++){
+            if (!strcmp(funs[tmp].fun_vars[i].name, name)){
+                  return funs[tmp].fun_vars[i].type;
+            }
+      }
+      for (i = 0; i < funs[0].nb_vars; i++){
+            if (!strcmp(funs[0].fun_vars[i].name, name)){
+                  return funs[0].fun_vars[i].type;
+            }
+      }
+      fprintf(stderr, "ERROR NO LValue\n");
+      exit(EXIT_FAILURE);
+}
+
 int convert_type (char * type_name){
       switch (*type_name){
             case 'e' : return __ENTIER__;
@@ -290,6 +365,7 @@ int convert_type (char * type_name){
             default : fprintf(stderr, "THIS TYPE %s DOES NOT EXIST \n", type_name); exit(EXIT_FAILURE);
       }
 }
+
 void init () {
 	if (!(funs = malloc (FUN_MAX * sizeof (fun_sym)))) {
 		fprintf (stderr, "Failed allocation : init\n");
@@ -297,15 +373,19 @@ void init () {
 	}
 	add_fun ("__INIT__", 0);
 }
+
 void before_exit () {
 	int i;
+
 	for (i = 0 ; i < nb_funs ; i++) {
 		free (funs[i].fun_vars);
 	}
 	free (funs);
 }
+
 int find_fun(char * name){
       int i;
+
       for (i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name))
                   return funs[i].num_lab;
@@ -313,8 +393,10 @@ int find_fun(char * name){
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
       exit(EXIT_FAILURE);
 }
+
 int return_type_fun (char* name) {
       int i;
+
       for (i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name))
                   return funs[i].return_type;
@@ -322,8 +404,10 @@ int return_type_fun (char* name) {
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
       exit(EXIT_FAILURE);
 }
+
 int return_nb_args_fun (char * name){
       int i;
+
       for (i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name))
                   return funs[i].nb_arg;
@@ -331,14 +415,17 @@ int return_nb_args_fun (char * name){
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
       exit(EXIT_FAILURE);
 }
+
 void add_fun (char * name, int return_type){
       int i;
+
       for(i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name)){
                   fprintf(stderr, "THE NAME %s IS ALREADY USED\n", name);
                   exit(EXIT_FAILURE);
             }
       }
+
       if (nb_funs == FUN_MAX){
             if (NULL == realloc(funs, nb_funs_max * 2)){
                   fprintf(stderr, "NO MORE SPACE LEFT\n");
@@ -346,8 +433,10 @@ void add_fun (char * name, int return_type){
             }
             nb_funs_max *= 2;
       }
+
       strcpy(funs[nb_funs].name, name);
       funs[nb_funs].return_type = return_type;
+
       if (!strcmp(name, "main")) {
 		  current_label = __MAIN_LABEL__;
 	  }
@@ -362,8 +451,10 @@ void add_fun (char * name, int return_type){
 	     fprintf (stderr, "Failed allocation : add_fun");
 	     exit (EXIT_FAILURE);
 	  }
+
       nb_funs ++;
 }
+
 int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
@@ -372,6 +463,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
             if (funs[j].num_lab == num_lab_fun){
                   
                   nbs_var_fun = funs[j].nb_vars;
+
                   for (i = 0; i < nbs_var_fun; i++){
                         if (!strcmp(name, funs[j].fun_vars[i].name)){
                               fprintf(stderr, "ERROR %s IS ALREADY USED\n", name);
@@ -388,6 +480,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
                   strcpy(funs[j].fun_vars[nbs_var_fun].name, name);
                   funs[j].fun_vars[nbs_var_fun].type = type_var;
                   funs[j].fun_vars[nbs_var_fun].position = position;
+
                   funs[j].nb_vars ++;
 				  return j;
             }
@@ -395,6 +488,7 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
 	fprintf (stderr, "Fonction non trouvée.\n");
 	return -1;
 }
+
 void print_all_var_in_label (int label) {
 	int i, j;
 	for (i = 0 ; i < nb_funs ; i++) {
@@ -406,12 +500,15 @@ void print_all_var_in_label (int label) {
 		}
 	}
 }
+
 void add_args (char* name, int type, int position, int num_lab_fun) {
 	int tmp = add_var_fun (name, type, position, num_lab_fun);
 	funs[tmp].nb_arg++;
 }
+
 int search_var_fun_in_label (char* name, int label) {
 	int i, j;
+
       for (i = 0; i < nb_funs; i++){
 		if (label == funs[i].num_lab) {
 	            for (j = 0; j < funs[i].nb_vars; j++){
@@ -423,8 +520,10 @@ int search_var_fun_in_label (char* name, int label) {
       }
 	return -999;
 }
+
 int search_var_fun (char * name){
       int i;
+
       for (i = 0; i < funs[jump_label].nb_vars; i++){
             if (!strcmp(funs[jump_label].fun_vars[i].name,name))
                   return funs[jump_label].fun_vars[i].position;
@@ -437,8 +536,10 @@ int search_var_fun (char * name){
       fprintf(stderr, "THE VARIABLE %s DOES NOT EXIST\n",name);
       exit(EXIT_FAILURE);
 }
+
 void check_main (){
       int i;
+
       for (i = 0; i < nb_funs; i++)
             if (!strcmp(funs[i].name, "main"))
                   return;
@@ -446,6 +547,7 @@ void check_main (){
       fprintf(stderr, "NO MAIN FUNCTION\n");
       exit(EXIT_FAILURE);
 }
+
 int main(int argc, char** argv) {
       int fd;
       char * buff;
@@ -455,6 +557,7 @@ int main(int argc, char** argv) {
                   exit(EXIT_FAILURE);
             }
             if(argc == 3 && !strcmp( argv[2], "-o") ){
+
                   buff = strcat( strsep(&argv[1] , "."), ".vm");
                    if ((fd = open(buff, O_CREAT | O_WRONLY | O_TRUNC,
                                 S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
