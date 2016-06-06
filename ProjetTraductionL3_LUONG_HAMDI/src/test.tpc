@@ -6,14 +6,12 @@ void test(caractere b){
 }
 
 entier fact (entier x){
-	if (x == 0){
+	if (x == 1){
 		return 1;
 	}
 	return (x * fact (x -1));
 }
 
 entier main ( void ) {
-	entier a;
-	a = 5;
-	print (fact(a));
+	print (fact(5));
 }

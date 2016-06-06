@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 #define IDENT_MAX	64
 #define VARS_MAX	64
@@ -184,7 +189,7 @@ Instr        : LValue EGAL Exp PV {
 															if (__VOID__ != return_type_fun ($1)) inst ("PUSH");
                                                       }
                                                       else{
-															fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
+										fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
                                                             fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
                                                             exit(EXIT_FAILURE);
                                                       }
@@ -267,7 +272,6 @@ Exp          : Exp ADDSUB Exp {
 					}
 					else {
 						instarg ("SET", x);
-						fprintf (stderr, "%s: %d\n",$1, x);
 						inst ("LOADR");
 					}
 					inst ("PUSH");
@@ -410,8 +414,6 @@ int add_var_fun (char * name, int type_var, int position, int num_lab_fun){
       int j, i;
       int nbs_var_fun;
       
-	fprintf (stderr, "Addvar %s in : %d\n", name, num_lab_fun);
-
       for (j = 0; j < nb_funs; j++) {
             if (funs[j].num_lab == num_lab_fun){
                   
@@ -502,19 +504,37 @@ void check_main (){
 }
 
 int main(int argc, char** argv) {
-  if(argc==2){
-    yyin = fopen(argv[1],"r");
-  }
-  else if(argc==1){
-    yyin = stdin;
-  }
-  else{
-    fprintf(stderr,"usage: %s [src]\n",argv[0]);
-    return 1;
-  }
-  init ();
-  yyparse();
-  inst("HALT");
-  before_exit ();
-  return 0;
+      int fd;
+      char * buff;
+      if(argc >= 2){
+            if ( NULL == ( yyin = fopen(argv[1],"r") )){
+                  perror("fopen");
+                  exit(EXIT_FAILURE);
+            }
+            if(argc == 3 && !strcmp( argv[2], "-o") ){
+
+                  buff = strcat( strsep(&argv[1] , "."), ".vm");
+                   if ((fd = open(buff, O_CREAT | O_WRONLY | O_TRUNC,
+                                S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+                        perror("open");
+                        return EXIT_FAILURE;
+                    }
+                  if (dup2(fd, 1) == -1) {
+                        perror("dup2");
+                        return EXIT_FAILURE;
+                  }
+            }
+      }
+      else if(argc==1){
+      yyin = stdin;
+      }
+      else{
+      fprintf(stderr,"usage: %s [src]\n",argv[0]);
+      return 1;
+      }
+      init ();
+      yyparse();
+      inst("HALT");
+      before_exit ();
+      return 0;
 }
