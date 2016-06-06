@@ -1,13 +1,16 @@
-const c = 5;
+entier x;
 
-void test ( entier x, entier y ) {
-	entier caca, pipi;
-	print (x - y);
-	return;
+void a (void) {
+	print (1);
 }
 
-entier main ( void ) {
-	entier a;
-	a = 9;
-	test (a, 5);
+entier factorielle (entier x) {
+	if (x <= 1) {
+		return 1;
+	}
+	return x * factorielle (x - 1);
+}
+
+void main (void) {
+	print (factorielle (6));
 }

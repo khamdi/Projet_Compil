@@ -42,10 +42,6 @@ int count = 0;
 int jump_label = 0;
 int current_label = 0;
 
-int* call_stack = NULL;
-int index_current_call = -1;
-int max_calls = BUFSIZ;
-
 int size_fun_sym = 0;
 int nb_funs = 0;
 int nb_funs_max = FUN_MAX;
@@ -58,6 +54,7 @@ void comment(const char *);
 void init ();
 void before_exit ();
 
+int return_type_fun (char* name);
 void print_all_var_in_label (int label);
 int add_var_fun (char * name_var, int type_var, int position, int num_lab_fun);
 int search_var_fun_in_label (char* name, int label);
@@ -68,7 +65,6 @@ int convert_type (char * type_name);
 void check_main ();
 int find_fun(char * name);
 int return_nb_args_fun (char * name);
-void check_type (char * type);
 
 %}
 
@@ -123,7 +119,7 @@ Litteral     : NombreSigne {$$ = $1;}
              | CARACTERE {$$ = *($1 + 1);};
 NombreSigne  : NUM {$$ = $1;}
              | ADDSUB NUM {$$ = ($1 == '+') ? $1: -$1;};
-DeclVars     : DeclVars TYPE Declarateurs PV {check_type($2);}
+DeclVars     : DeclVars TYPE Declarateurs PV
              | ;
 Declarateurs : Declarateurs VRG Declarateur {add_var_fun($3, convert_type($<id>0), count, current_label); instarg ("ALLOC", 1);  count++;}
              | Declarateur {add_var_fun($1, convert_type($<id>0), count, current_label); instarg ("ALLOC", 1);  count++;};
@@ -133,7 +129,6 @@ DeclFoncts   : DeclFoncts DeclFonct
              | DeclFonct ;
 DeclFonct    : EnTeteFonct {/* Si ($1: nom de la fonction) est "main", faire un saut/label pour commencer à exécuter main après avoir réservé de la place pour les constantes et globales */ } Corps {/*FAIRE LE CORPS*/} ;
 EnTeteFonct  : TYPE IDENT LPAR {
-                              check_type($1);
 					add_fun($2, convert_type($1));
 					instarg("LABEL", current_label);
 					count = 0;
@@ -154,7 +149,7 @@ EnTeteFonct  : TYPE IDENT LPAR {
 Parametres   : VOID {$$ = 0;/* Rien à faire pour les arguments */}
              | ListTypVar {$$ = $1;};
 ListTypVar   : ListTypVar VRG TYPE IDENT {$$ = $1 + 1; add_args ($4, convert_type($3), count, current_label); count++;}
-             | TYPE IDENT {$$ = 1; check_type($1); add_args ($2, convert_type($1), count, current_label); count++;};
+             | TYPE IDENT {$$ = 1; add_args ($2, convert_type($1), count, current_label); count++;};
 Corps        : LCUR DeclConsts DeclVars SuiteInstr RCUR {/* Corps de fonction, si la fonction est de type void, ne pas oublier return implicite à la fin */};
 SuiteInstr   : SuiteInstr Instr
              | ;
@@ -186,6 +181,7 @@ Instr        : LValue EGAL Exp PV {
                                                 {
                                                       if (return_nb_args_fun($1) == $3){
                                                             instarg("CALL", find_fun($1));
+															if (__VOID__ != return_type_fun ($1)) inst ("PUSH");
                                                       }
                                                       else{
 															fprintf (stderr, "%d <> %d", return_nb_args_fun ($1), $3);
@@ -282,8 +278,10 @@ Exp          : Exp ADDSUB Exp {
              | Exp IF LPAR Exp RPAR ELSE Exp {inst ("POP"); inst ("SWAP"); inst ("POP"); inst ("NEG"); instarg ("JUMPF", jump_label++); inst ("NEG"); inst ("SWAP"); inst ("PUSH"); instarg ("JUMP", jump_label++); instarg ("LABEL", jump_label - 2); inst ("POP"); inst ("PUSH"); instarg ("LABEL", jump_label - 1);/*$$ = ($4) ? $1: $6;*/}
              | IDENT LPAR Arguments RPAR  {
                                                 if (return_nb_args_fun($1) == $3){
-													int x = find_fun ($1);
-                                                    instarg("CALL", x);		
+                                                    instarg("CALL", find_fun ($1));
+													fprintf (stderr, "Fact: ");
+													inst ("WRITE");
+													if (__VOID__ != return_type_fun ($1)) inst ("PUSH");	
                                                 }
                                                 else{
                                                       fprintf(stderr, "ARGUMENT PROBLEME FOR THE FUNCTION %s\n", $1 );
@@ -325,11 +323,6 @@ void init () {
 		exit (EXIT_FAILURE);
 	}
 	add_fun ("__INIT__", 0);
-
-	if (!(call_stack = malloc (BUFSIZ * sizeof (int)))) {
-		fprintf (stderr, "Failed allocation : init\n");
-		exit (EXIT_FAILURE);
-	}
 }
 
 void before_exit () {
@@ -347,6 +340,17 @@ int find_fun(char * name){
       for (i = 0; i < nb_funs; i++){
             if (!strcmp(funs[i].name, name))
                   return funs[i].num_lab;
+      }
+      fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
+      exit(EXIT_FAILURE);
+}
+
+int return_type_fun (char* name) {
+      int i;
+
+      for (i = 0; i < nb_funs; i++){
+            if (!strcmp(funs[i].name, name))
+                  return funs[i].return_type;
       }
       fprintf(stderr, "THE FUNCTION %s DOES NOT EXIST\n", name);
       exit(EXIT_FAILURE);
@@ -494,16 +498,6 @@ void check_main (){
                   return;
       
       fprintf(stderr, "NO MAIN FUNCTION\n");
-      exit(EXIT_FAILURE);
-}
-
-void check_type (char * type){
-      fprintf(stderr, "%s\n", type );
-      if (!strcmp("entier", type))
-            return;
-      else if (!strcmp("caractere", type))
-            return;
-      fprintf(stderr, "THIS TYPE %s DOES NOT EXIST\n",type);
       exit(EXIT_FAILURE);
 }
 
